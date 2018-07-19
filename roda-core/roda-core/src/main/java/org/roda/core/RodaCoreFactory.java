@@ -127,6 +127,7 @@ import org.roda.core.plugins.orchestrate.akka.distributed.AkkaDistributedPluginW
 import org.roda.core.storage.DefaultStoragePath;
 import org.roda.core.storage.Resource;
 import org.roda.core.storage.StorageService;
+import org.roda.core.storage.StorageServiceWrapper;
 import org.roda.core.storage.fedora.FedoraStorageService;
 import org.roda.core.storage.fs.FSUtils;
 import org.roda.core.storage.fs.FileStorageService;
@@ -755,7 +756,7 @@ public class RodaCoreFactory {
   }
 
   private static void instantiateStorageAndModel() throws GenericException {
-    storage = instantiateStorage();
+    storage = new StorageServiceWrapper(instantiateStorage(), nodeType);
     LOGGER.debug("Finished instantiating storage...");
     model = new ModelService(storage);
     LOGGER.debug("Finished instantiating model...");
@@ -1396,14 +1397,26 @@ public class RodaCoreFactory {
     TransferUpdateStatus.getInstance().setUpdatingStatus(folderRelativePath, isUpdating);
   }
 
+  /**
+   * 20180719 hsilva: non-checked exception will be thrown by service non read
+   * related methods
+   */
   public static StorageService getStorageService() {
     return storage;
   }
 
+  /**
+   * 20180719 hsilva: non-checked exception will be thrown by service non read
+   * related methods
+   */
   public static ModelService getModelService() {
     return model;
   }
 
+  /**
+   * 20180719 hsilva: non-checked exception will be thrown by service non read
+   * related methods
+   */
   public static IndexService getIndexService() {
     return index;
   }

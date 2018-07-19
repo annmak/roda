@@ -1997,7 +1997,7 @@ public class BrowserHelper {
 
   public static void deleteDescriptiveMetadataVersion(String aipId, String representationId,
     String descriptiveMetadataId, String versionId)
-    throws NotFoundException, GenericException, RequestNotValidException {
+    throws NotFoundException, GenericException, RequestNotValidException, AuthorizationDeniedException {
     StoragePath storagePath = ModelUtils.getDescriptiveMetadataStoragePath(aipId, representationId,
       descriptiveMetadataId);
     RodaCoreFactory.getStorageService().deleteBinaryVersion(storagePath, versionId);
@@ -2146,7 +2146,7 @@ public class BrowserHelper {
   }
 
   public static void deleteRiskVersion(String riskId, String versionId)
-    throws NotFoundException, GenericException, RequestNotValidException {
+    throws NotFoundException, GenericException, RequestNotValidException, AuthorizationDeniedException {
     StoragePath storagePath = ModelUtils.getRiskStoragePath(riskId);
     RodaCoreFactory.getStorageService().deleteBinaryVersion(storagePath, versionId);
   }
