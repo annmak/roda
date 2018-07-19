@@ -601,8 +601,8 @@ public class RodaCoreFactory {
 
   private static void instantiateDefaultObjects() {
     if (INSTANTIATE_DEFAULT_RESOURCES) {
-      try (CloseableIterable<Resource> resources = storage.listResourcesUnderContainer(DefaultStoragePath.parse(""),
-        true)) {
+      try (CloseableIterable<Resource> resources = getStorageService()
+        .listResourcesUnderContainer(DefaultStoragePath.parse(""), true)) {
 
         Iterator<Resource> resourceIterator = resources.iterator();
         boolean hasFileResources = false;
@@ -654,10 +654,10 @@ public class RodaCoreFactory {
           // (e.g. fedora)
           FileStorageService fileStorageService = new FileStorageService(storagePath);
 
-          index.reindexRisks(fileStorageService);
-          index.reindexFormats(fileStorageService);
-          index.reindexRepresentationInformation(fileStorageService);
-          index.reindexAIPs();
+          getIndexService().reindexRisks(fileStorageService);
+          getIndexService().reindexFormats(fileStorageService);
+          getIndexService().reindexRepresentationInformation(fileStorageService);
+          getIndexService().reindexAIPs();
           // reindex other default objects HERE
         }
       } catch (AuthorizationDeniedException | RequestNotValidException | NotFoundException | GenericException
@@ -1361,12 +1361,12 @@ public class RodaCoreFactory {
   }
 
   private static void indexUsersAndGroupsFromLDAP() throws GenericException {
-    for (User user : model.listUsers()) {
-      model.notifyUserUpdated(user).failOnError();
+    for (User user : getModelService().listUsers()) {
+      getModelService().notifyUserUpdated(user).failOnError();
     }
 
-    for (Group group : model.listGroups()) {
-      model.notifyGroupUpdated(group).failOnError();
+    for (Group group : getModelService().listGroups()) {
+      getModelService().notifyGroupUpdated(group).failOnError();
     }
   }
 
@@ -1884,7 +1884,8 @@ public class RodaCoreFactory {
   private static void printIndexMembers(List<String> args, Filter filter, Sorter sorter, Sublist sublist, Facets facets)
     throws GenericException, RequestNotValidException {
     System.out.println("Index list " + args.get(2));
-    IndexResult<RODAMember> users = index.find(RODAMember.class, filter, sorter, sublist, facets, new ArrayList<>());
+    IndexResult<RODAMember> users = getIndexService().find(RODAMember.class, filter, sorter, sublist, facets,
+      new ArrayList<>());
     for (RODAMember rodaMember : users.getResults()) {
       System.out.println("\t" + rodaMember);
     }

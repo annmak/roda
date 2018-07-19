@@ -478,8 +478,7 @@ public final class RodaConstants {
   public static final NodeType DEFAULT_NODE_TYPE = NodeType.MASTER;
 
   public enum OrchestratorType {
-    @Deprecated
-    EMBEDDED, AKKA, AKKA_DISTRIBUTED
+    AKKA, AKKA_DISTRIBUTED
   }
 
   public static final OrchestratorType DEFAULT_ORCHESTRATOR_TYPE = OrchestratorType.AKKA;
