@@ -896,7 +896,7 @@ public final class PluginHelper {
       Risk risk = JsonUtils.getObjectFromJson(inputStream, Risk.class);
       risk.setId(riskId);
       return model.createRisk(risk, false);
-    } catch (GenericException | IOException e) {
+    } catch (GenericException | IOException | AuthorizationDeniedException e) {
       LOGGER.error("Could not create a default risk", e);
       throw new GenericException(e);
     }

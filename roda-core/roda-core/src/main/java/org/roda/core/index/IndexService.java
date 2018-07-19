@@ -566,9 +566,8 @@ public class IndexService {
 
   public <T extends IsIndexed> CloseableIterable<OptionalWithCause<T>> list(Class<T> listClass,
     List<String> fieldsToReturn) throws RequestNotValidException, GenericException {
-    int counter = RodaCoreFactory.getIndexService().count(listClass, Filter.ALL).intValue();
-    IndexResult<T> resources = RodaCoreFactory.getIndexService().find(listClass, Filter.ALL, Sorter.NONE,
-      new Sublist(0, counter), fieldsToReturn);
+    int counter = count(listClass, Filter.ALL).intValue();
+    IndexResult<T> resources = find(listClass, Filter.ALL, Sorter.NONE, new Sublist(0, counter), fieldsToReturn);
     Iterator<T> it = resources.getResults().iterator();
 
     return new CloseableIterable<OptionalWithCause<T>>() {

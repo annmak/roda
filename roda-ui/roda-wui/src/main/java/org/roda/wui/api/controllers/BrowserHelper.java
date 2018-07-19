@@ -2057,24 +2057,25 @@ public class BrowserHelper {
     model.updateDIPPermissions(dip);
   }
 
-  public static Risk createRisk(Risk risk, User user, boolean commit) throws GenericException {
+  public static Risk createRisk(Risk risk, User user, boolean commit)
+    throws GenericException, AuthorizationDeniedException {
     risk.setCreatedBy(user.getName());
     risk.setUpdatedBy(user.getName());
     return RodaCoreFactory.getModelService().createRisk(risk, commit);
   }
 
   public static void updateRisk(Risk risk, User user, Map<String, String> properties, boolean commit, int incidences)
-    throws GenericException {
+    throws GenericException, AuthorizationDeniedException {
     risk.setUpdatedBy(user.getName());
     RodaCoreFactory.getModelService().updateRisk(risk, properties, commit, incidences);
   }
 
-  public static Risk createRisk(Risk risk, boolean commit) throws GenericException {
+  public static Risk createRisk(Risk risk, boolean commit) throws GenericException, AuthorizationDeniedException {
     return RodaCoreFactory.getModelService().createRisk(risk, commit);
   }
 
   public static Risk updateRisk(Risk risk, Map<String, String> properties, boolean commit, int incidences)
-    throws GenericException {
+    throws GenericException, AuthorizationDeniedException {
     return RodaCoreFactory.getModelService().updateRisk(risk, properties, commit, incidences);
   }
 
@@ -2083,11 +2084,13 @@ public class BrowserHelper {
     RodaCoreFactory.getModelService().deleteRisk(riskId, commit);
   }
 
-  public static RiskIncidence createRiskIncidence(RiskIncidence incidence, boolean commit) throws GenericException {
+  public static RiskIncidence createRiskIncidence(RiskIncidence incidence, boolean commit)
+    throws GenericException, AuthorizationDeniedException {
     return RodaCoreFactory.getModelService().createRiskIncidence(incidence, commit);
   }
 
-  public static RiskIncidence updateRiskIncidence(RiskIncidence incidence, boolean commit) throws GenericException {
+  public static RiskIncidence updateRiskIncidence(RiskIncidence incidence, boolean commit)
+    throws GenericException, AuthorizationDeniedException {
     return RodaCoreFactory.getModelService().updateRiskIncidence(incidence, commit);
   }
 
@@ -2621,7 +2624,8 @@ public class BrowserHelper {
     }
   }
 
-  public static void updateRiskIncidence(RiskIncidence incidence) throws GenericException {
+  public static void updateRiskIncidence(RiskIncidence incidence)
+    throws GenericException, AuthorizationDeniedException {
     RodaCoreFactory.getModelService().updateRiskIncidence(incidence, true);
   }
 
@@ -3018,7 +3022,8 @@ public class BrowserHelper {
   }
 
   public static RepresentationInformation createRepresentationInformation(RepresentationInformation ri,
-    RepresentationInformationExtraBundle extra, String createdBy, boolean commit) throws GenericException {
+    RepresentationInformationExtraBundle extra, String createdBy, boolean commit)
+    throws GenericException, AuthorizationDeniedException {
     if (extra != null) {
       ri.setExtras(getRepresentationInformationExtra(extra, ri.getFamily()));
     }
@@ -3026,7 +3031,8 @@ public class BrowserHelper {
   }
 
   public static RepresentationInformation updateRepresentationInformation(RepresentationInformation ri,
-    RepresentationInformationExtraBundle extra, String updatedBy, boolean commit) throws GenericException {
+    RepresentationInformationExtraBundle extra, String updatedBy, boolean commit)
+    throws GenericException, AuthorizationDeniedException {
     if (extra != null) {
       ri.setExtras(getRepresentationInformationExtra(extra, ri.getFamily()));
     }
@@ -3089,11 +3095,13 @@ public class BrowserHelper {
     return newBundle;
   }
 
-  public static Format createFormat(Format format, boolean commit) throws GenericException {
+  public static Format createFormat(Format format, boolean commit)
+    throws GenericException, AuthorizationDeniedException {
     return RodaCoreFactory.getModelService().createFormat(format, commit);
   }
 
-  public static Format updateFormat(Format format, boolean commit) throws GenericException {
+  public static Format updateFormat(Format format, boolean commit)
+    throws GenericException, AuthorizationDeniedException {
     return RodaCoreFactory.getModelService().updateFormat(format, commit);
   }
 

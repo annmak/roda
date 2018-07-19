@@ -528,7 +528,7 @@ public class IndexServiceTest {
 
   @Test
   public void indexMembers() throws AlreadyExistsException, GenericException, RequestNotValidException,
-    IllegalOperationException, NotFoundException {
+    IllegalOperationException, NotFoundException, AuthorizationDeniedException {
     Set<String> groups = new HashSet<>();
     groups.add("administrators");
 

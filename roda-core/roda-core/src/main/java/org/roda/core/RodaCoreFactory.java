@@ -284,6 +284,17 @@ public class RodaCoreFactory {
     return instantiatedWithoutErrors;
   }
 
+  public static void checkIfSlaveModeIsOnAndIfTrueThrowException(NodeType nodeType)
+    throws AuthorizationDeniedException {
+    if (nodeType == NodeType.SLAVE) {
+      throw new AuthorizationDeniedException("Cannot execute non read-only method in read-only instance");
+    }
+  }
+
+  public static boolean checkIfSlaveModeIsOn(NodeType nodeType) {
+    return nodeType == NodeType.SLAVE;
+  }
+
   public static void instantiate() {
     NodeType nodeType = NodeType
       .valueOf(getSystemProperty(RodaConstants.CORE_NODE_TYPE, RodaConstants.DEFAULT_NODE_TYPE.name()));
@@ -758,7 +769,7 @@ public class RodaCoreFactory {
   private static void instantiateStorageAndModel() throws GenericException {
     storage = new StorageServiceWrapper(instantiateStorage(), nodeType);
     LOGGER.debug("Finished instantiating storage...");
-    model = new ModelService(storage);
+    model = new ModelService(storage, nodeType);
     LOGGER.debug("Finished instantiating model...");
   }
 

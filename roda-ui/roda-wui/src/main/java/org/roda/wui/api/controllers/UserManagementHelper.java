@@ -68,7 +68,8 @@ public class UserManagementHelper {
   }
 
   public static User registerUser(User user, String password, UserExtraBundle extra, String localeString,
-    String servletPath) throws GenericException, UserAlreadyExistsException, EmailAlreadyExistsException {
+    String servletPath)
+    throws GenericException, UserAlreadyExistsException, EmailAlreadyExistsException, AuthorizationDeniedException {
     user.setExtra(getUserExtra(extra));
     User updatedUser = UserUtility.resetGroupsAndRoles(user);
 
@@ -95,8 +96,9 @@ public class UserManagementHelper {
     return registeredUser;
   }
 
-  public static User createUser(User user, String password, UserExtraBundle extra) throws GenericException,
-    EmailAlreadyExistsException, UserAlreadyExistsException, IllegalOperationException, NotFoundException {
+  public static User createUser(User user, String password, UserExtraBundle extra)
+    throws GenericException, EmailAlreadyExistsException, UserAlreadyExistsException, IllegalOperationException,
+    NotFoundException, AuthorizationDeniedException {
     user.setExtra(getUserExtra(extra));
     User addedUser = RodaCoreFactory.getModelService().createUser(user, password, true);
     RodaCoreFactory.getIndexService().commit(RODAMember.class);
@@ -214,7 +216,8 @@ public class UserManagementHelper {
     RodaCoreFactory.getIndexService().commit(RODAMember.class);
   }
 
-  public static void createGroup(Group group) throws GenericException, AlreadyExistsException {
+  public static void createGroup(Group group)
+    throws GenericException, AlreadyExistsException, AuthorizationDeniedException {
     RodaCoreFactory.getModelService().createGroup(group, true);
     RodaCoreFactory.getIndexService().commit(RODAMember.class);
   }
@@ -235,12 +238,13 @@ public class UserManagementHelper {
   }
 
   public static User requestPasswordReset(String username, String email)
-    throws IllegalOperationException, NotFoundException, GenericException {
+    throws IllegalOperationException, NotFoundException, GenericException, AuthorizationDeniedException {
     return RodaCoreFactory.getModelService().requestPasswordReset(username, email, true, true);
   }
 
   public static User resetUserPassword(String username, String password, String resetPasswordToken)
-    throws InvalidTokenException, IllegalOperationException, NotFoundException, GenericException {
+    throws InvalidTokenException, IllegalOperationException, NotFoundException, GenericException,
+    AuthorizationDeniedException {
     return RodaCoreFactory.getModelService().resetUserPassword(username, password, resetPasswordToken, true, true);
   }
 

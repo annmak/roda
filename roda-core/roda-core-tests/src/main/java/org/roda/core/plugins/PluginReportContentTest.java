@@ -132,7 +132,7 @@ public class PluginReportContentTest {
     index.execute(TransferredResource.class, Filter.ALL, new ArrayList<>(), new IndexRunnable<TransferredResource>() {
 
       @Override
-      public void run(TransferredResource item) throws GenericException {
+      public void run(TransferredResource item) throws GenericException, AuthorizationDeniedException {
         model.deleteTransferredResource(item);
       }
     }, e -> Assert.fail("Error cleaning up", e));
