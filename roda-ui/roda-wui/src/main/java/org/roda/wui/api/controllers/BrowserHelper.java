@@ -601,7 +601,8 @@ public class BrowserHelper {
     return RodaCoreFactory.getIndexService().retrieve(returnClass, id, fieldsToReturn);
   }
 
-  protected static <T extends IsIndexed> void commit(Class<T> returnClass) throws GenericException {
+  protected static <T extends IsIndexed> void commit(Class<T> returnClass)
+    throws GenericException, AuthorizationDeniedException {
     RodaCoreFactory.getIndexService().commit(returnClass);
   }
 
@@ -1633,7 +1634,8 @@ public class BrowserHelper {
   }
 
   public static TransferredResource createTransferredResourcesFolder(String parentUUID, String folderName,
-    boolean forceCommit) throws GenericException, RequestNotValidException, NotFoundException {
+    boolean forceCommit)
+    throws GenericException, RequestNotValidException, NotFoundException, AuthorizationDeniedException {
     TransferredResource transferredResource = RodaCoreFactory.getTransferredResourcesScanner().createFolder(parentUUID,
       folderName);
     if (forceCommit) {
@@ -1673,8 +1675,8 @@ public class BrowserHelper {
   }
 
   public static TransferredResource createTransferredResourceFile(String parentUUID, String fileName,
-    InputStream inputStream, boolean forceCommit)
-    throws GenericException, AlreadyExistsException, RequestNotValidException, NotFoundException {
+    InputStream inputStream, boolean forceCommit) throws GenericException, AlreadyExistsException,
+    RequestNotValidException, NotFoundException, AuthorizationDeniedException {
     LOGGER.debug("createTransferredResourceFile(path={}, name={})", parentUUID, fileName);
     TransferredResource transferredResource = RodaCoreFactory.getTransferredResourcesScanner().createFile(parentUUID,
       fileName, inputStream);
@@ -1687,19 +1689,20 @@ public class BrowserHelper {
   }
 
   protected static <T extends IsIndexed> void delete(User user, Class<T> returnClass, SelectedItems<T> ids)
-    throws GenericException, RequestNotValidException {
+    throws GenericException, RequestNotValidException, AuthorizationDeniedException {
     List<String> idList = consolidate(user, returnClass, ids);
     RodaCoreFactory.getIndexService().delete(returnClass, idList);
     RodaCoreFactory.getIndexService().commit(returnClass);
   }
 
   public static void updateTransferredResources(Optional<String> folderRelativePath, boolean waitToFinish)
-    throws IsStillUpdatingException, GenericException {
+    throws IsStillUpdatingException, GenericException, AuthorizationDeniedException {
     RodaCoreFactory.getTransferredResourcesScanner().updateTransferredResources(folderRelativePath, waitToFinish);
   }
 
   public static void updateTransferredResource(Optional<String> folderRelativePath, ContentPayload payload, String name,
-    boolean waitToFinish) throws IsStillUpdatingException, GenericException, NotFoundException, IOException {
+    boolean waitToFinish)
+    throws IsStillUpdatingException, GenericException, NotFoundException, IOException, AuthorizationDeniedException {
     RodaCoreFactory.getTransferredResourcesScanner().updateTransferredResource(folderRelativePath, payload, name,
       waitToFinish);
   }
@@ -2284,7 +2287,8 @@ public class BrowserHelper {
       Collections.emptyMap(), "Could not execute risk delete action");
   }
 
-  public static void updateRiskCounters() throws GenericException, RequestNotValidException {
+  public static void updateRiskCounters()
+    throws GenericException, RequestNotValidException, AuthorizationDeniedException {
     IndexService index = RodaCoreFactory.getIndexService();
 
     IndexResult<RiskIncidence> findAllRiskIncidences = index.find(RiskIncidence.class, Filter.ALL, Sorter.NONE,
@@ -2487,8 +2491,9 @@ public class BrowserHelper {
     return result;
   }
 
-  public static String renameTransferredResource(String transferredResourceId, String newName) throws GenericException,
-    RequestNotValidException, AlreadyExistsException, IsStillUpdatingException, NotFoundException {
+  public static String renameTransferredResource(String transferredResourceId, String newName)
+    throws GenericException, RequestNotValidException, AlreadyExistsException, IsStillUpdatingException,
+    NotFoundException, AuthorizationDeniedException {
     List<String> resourceFields = Arrays.asList(RodaConstants.INDEX_UUID, RodaConstants.TRANSFERRED_RESOURCE_FULLPATH,
       RodaConstants.TRANSFERRED_RESOURCE_PARENT_UUID);
 
@@ -2734,7 +2739,7 @@ public class BrowserHelper {
   }
 
   public static TransferredResource reindexTransferredResource(String path)
-    throws IsStillUpdatingException, NotFoundException, GenericException {
+    throws IsStillUpdatingException, NotFoundException, GenericException, AuthorizationDeniedException {
     TransferredResourcesScanner scanner = RodaCoreFactory.getTransferredResourcesScanner();
     scanner.updateTransferredResources(Optional.of(path), true);
     return RodaCoreFactory.getIndexService().retrieve(TransferredResource.class,

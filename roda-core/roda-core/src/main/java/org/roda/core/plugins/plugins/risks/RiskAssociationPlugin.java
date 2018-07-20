@@ -183,7 +183,7 @@ public class RiskAssociationPlugin<T extends IsRODAObject> extends AbstractPlugi
   public Report afterAllExecute(IndexService index, ModelService model, StorageService storage) throws PluginException {
     try {
       index.commit(RiskIncidence.class);
-    } catch (GenericException e) {
+    } catch (GenericException | AuthorizationDeniedException e) {
       LOGGER.error("Error commiting risk incidences to index");
     }
     return new Report();

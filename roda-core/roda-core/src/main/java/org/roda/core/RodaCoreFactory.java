@@ -94,6 +94,7 @@ import org.roda.core.data.exceptions.AuthorizationDeniedException;
 import org.roda.core.data.exceptions.GenericException;
 import org.roda.core.data.exceptions.NotFoundException;
 import org.roda.core.data.exceptions.RequestNotValidException;
+import org.roda.core.data.exceptions.ReturnWithExceptions;
 import org.roda.core.data.exceptions.RoleAlreadyExistsException;
 import org.roda.core.data.v2.common.Pair;
 import org.roda.core.data.v2.index.IndexResult;
@@ -117,6 +118,7 @@ import org.roda.core.index.schema.SolrBootstrapUtils;
 import org.roda.core.index.schema.SolrCollectionRegistry;
 import org.roda.core.index.utils.SolrUtils;
 import org.roda.core.migration.MigrationManager;
+import org.roda.core.model.ModelObserver;
 import org.roda.core.model.ModelService;
 import org.roda.core.plugins.PluginManager;
 import org.roda.core.plugins.PluginManagerException;
@@ -291,6 +293,16 @@ public class RodaCoreFactory {
     }
   }
 
+  public static ReturnWithExceptions<Void, ModelObserver> checkIfSlaveModeIsOnAndIfTrueReturn(NodeType nodeType) {
+    ReturnWithExceptions<Void, ModelObserver> ret = new ReturnWithExceptions<Void, ModelObserver>();
+    try {
+      checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    } catch (AuthorizationDeniedException e) {
+      ret.add(e);
+    }
+    return ret;
+  }
+
   public static boolean checkIfSlaveModeIsOn(NodeType nodeType) {
     return nodeType == NodeType.SLAVE;
   }
@@ -363,10 +375,10 @@ public class RodaCoreFactory {
   private static void instantiateSlaveMode() {
     INSTANTIATE_SOLR = true;
     INSTANTIATE_LDAP = true;
+    INSTANTIATE_PLUGIN_MANAGER = true;
 
     INSTANTIATE_SCANNER = false;
     INSTANTIATE_PLUGIN_ORCHESTRATOR = false;
-    INSTANTIATE_PLUGIN_MANAGER = false;
     INSTANTIATE_DEFAULT_RESOURCES = false;
     instantiate(NodeType.SLAVE);
   }
@@ -878,7 +890,7 @@ public class RodaCoreFactory {
         SolrBootstrapUtils.bootstrapSchemas(solr);
 
         // instantiate index related object
-        index = new IndexService(solr, model, metricsRegistry, rodaConfiguration);
+        index = new IndexService(solr, model, metricsRegistry, rodaConfiguration, nodeType);
       }
     }
 
@@ -1163,7 +1175,7 @@ public class RodaCoreFactory {
       try {
         getIndexService().create(RODAMember.class, new User(RodaConstants.ADMIN));
         getIndexService().commit(RODAMember.class);
-      } catch (GenericException e) {
+      } catch (GenericException | AuthorizationDeniedException e) {
         LOGGER.warn("Could not create user admin in index for test mode", e);
       }
     }
@@ -1392,7 +1404,8 @@ public class RodaCoreFactory {
         Files.createDirectories(transferredResourcesFolderPath);
       }
 
-      transferredResourcesScanner = new TransferredResourcesScanner(transferredResourcesFolderPath, getIndexService());
+      transferredResourcesScanner = new TransferredResourcesScanner(transferredResourcesFolderPath, getIndexService(),
+        nodeType);
     } catch (final Exception e) {
       LOGGER.error("Error starting Transferred Resources Scanner: " + e.getMessage(), e);
       instantiatedWithoutErrors = false;
@@ -1408,26 +1421,14 @@ public class RodaCoreFactory {
     TransferUpdateStatus.getInstance().setUpdatingStatus(folderRelativePath, isUpdating);
   }
 
-  /**
-   * 20180719 hsilva: non-checked exception will be thrown by service non read
-   * related methods
-   */
   public static StorageService getStorageService() {
     return storage;
   }
 
-  /**
-   * 20180719 hsilva: non-checked exception will be thrown by service non read
-   * related methods
-   */
   public static ModelService getModelService() {
     return model;
   }
 
-  /**
-   * 20180719 hsilva: non-checked exception will be thrown by service non read
-   * related methods
-   */
   public static IndexService getIndexService() {
     return index;
   }

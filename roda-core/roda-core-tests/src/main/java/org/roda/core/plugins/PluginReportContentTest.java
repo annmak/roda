@@ -142,8 +142,8 @@ public class PluginReportContentTest {
     return new ByteArrayInputStream(RandomStringUtils.randomAscii(GENERATED_FILE_SIZE).getBytes());
   }
 
-  private TransferredResource createCorpora()
-    throws NotFoundException, GenericException, RequestNotValidException, AlreadyExistsException {
+  private TransferredResource createCorpora() throws NotFoundException, GenericException, RequestNotValidException,
+    AlreadyExistsException, AuthorizationDeniedException {
     TransferredResourcesScanner f = RodaCoreFactory.getTransferredResourcesScanner();
 
     String parentUUID = f.createFolder(null, "test").getUUID();
