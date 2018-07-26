@@ -1794,23 +1794,36 @@ public class ModelService extends ModelObservable {
 
   public User createUser(User user, boolean notify) throws GenericException, EmailAlreadyExistsException,
     UserAlreadyExistsException, IllegalOperationException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
-
     return createUser(user, null, notify);
   }
 
   public User createUser(User user, String password, boolean notify)
+    throws EmailAlreadyExistsException, UserAlreadyExistsException, IllegalOperationException, GenericException,
+    NotFoundException, AuthorizationDeniedException {
+    return createUser(user, password, notify, false);
+  }
+
+  /**
+   * @param isHandlingEvent
+   *          this should only be set to true if invoked from EventsOrchestrator
+   *          related methods
+   */
+  public User createUser(User user, String password, boolean notify, boolean isHandlingEvent)
     throws GenericException, EmailAlreadyExistsException, UserAlreadyExistsException, IllegalOperationException,
     NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    boolean slaveModeIsOn = RodaCoreFactory.checkIfSlaveModeIsOn(nodeType);
 
     User createdUser = UserUtility.getLdapUtility().addUser(user);
     if (password != null) {
       UserUtility.getLdapUtility().setUserPassword(createdUser.getId(), password);
     }
 
-    if (notify) {
+    if (notify && !slaveModeIsOn) {
       notifyUserCreated(createdUser).failOnError();
+    }
+
+    if (!isHandlingEvent) {
+      RodaCoreFactory.eventsManager.notifyUserCreated(this, createdUser);
     }
 
     return createdUser;
@@ -1818,7 +1831,17 @@ public class ModelService extends ModelObservable {
 
   public User updateUser(User user, String password, boolean notify)
     throws GenericException, AlreadyExistsException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    return updateUser(user, password, notify, false);
+  }
+
+  /**
+   * @param isHandlingEvent
+   *          this should only be set to true if invoked from EventsOrchestrator
+   *          related methods
+   */
+  public User updateUser(User user, String password, boolean notify, boolean isHandlingEvent)
+    throws GenericException, AlreadyExistsException, NotFoundException, AuthorizationDeniedException {
+    boolean slaveModeIsOn = RodaCoreFactory.checkIfSlaveModeIsOn(nodeType);
 
     try {
       if (password != null) {
@@ -1826,8 +1849,12 @@ public class ModelService extends ModelObservable {
       }
 
       User updatedUser = UserUtility.getLdapUtility().modifyUser(user);
-      if (notify) {
+      if (notify && !slaveModeIsOn) {
         notifyUserUpdated(updatedUser).failOnError();
+      }
+
+      if (!isHandlingEvent) {
+        RodaCoreFactory.eventsManager.notifyUserUpdated(this, updatedUser, password);
       }
 
       return updatedUser;
@@ -1858,12 +1885,21 @@ public class ModelService extends ModelObservable {
 
   public User updateMyUser(User user, String password, boolean notify)
     throws GenericException, AlreadyExistsException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    return updateMyUser(user, password, notify, false);
+  }
+
+  public User updateMyUser(User user, String password, boolean notify, boolean isHandlingEvent)
+    throws GenericException, AlreadyExistsException, NotFoundException, AuthorizationDeniedException {
+    boolean slaveModeIsOn = RodaCoreFactory.checkIfSlaveModeIsOn(nodeType);
 
     try {
       User updatedUser = UserUtility.getLdapUtility().modifySelfUser(user, password);
-      if (notify) {
+      if (notify && !slaveModeIsOn) {
         notifyUserUpdated(updatedUser).failOnError();
+      }
+
+      if (!isHandlingEvent) {
+        RodaCoreFactory.eventsManager.notifyUserUpdated(this, updatedUser, password);
       }
 
       return updatedUser;

@@ -113,6 +113,8 @@ import org.roda.core.data.v2.ip.metadata.IndexedPreservationEvent;
 import org.roda.core.data.v2.user.Group;
 import org.roda.core.data.v2.user.RODAMember;
 import org.roda.core.data.v2.user.User;
+import org.roda.core.events.AkkaEventsManager;
+import org.roda.core.events.EventsManager;
 import org.roda.core.index.IndexService;
 import org.roda.core.index.schema.SolrBootstrapUtils;
 import org.roda.core.index.schema.SolrCollectionRegistry;
@@ -196,6 +198,9 @@ public class RodaCoreFactory {
   private static PluginManager pluginManager;
   private static PluginOrchestrator pluginOrchestrator = null;
   private static AkkaDistributedPluginWorker akkaDistributedPluginWorker;
+
+  // Events related
+  public static EventsManager eventsManager;
 
   private static LdapUtility ldapUtility;
   private static Path rodaApacheDSDataDirectory = null;
@@ -422,6 +427,10 @@ public class RodaCoreFactory {
         // instantiate storage and model service
         instantiateStorageAndModel();
         LOGGER.debug("Finished instantiating storage & model");
+
+        // FIXME
+        AkkaEventsManager akkaEventsOrchestrator = new AkkaEventsManager();
+        eventsManager = new EventsManager(akkaEventsOrchestrator, akkaEventsOrchestrator, nodeType, model);
 
         // instantiate solr and index service
         instantiateSolrAndIndexService(nodeType);

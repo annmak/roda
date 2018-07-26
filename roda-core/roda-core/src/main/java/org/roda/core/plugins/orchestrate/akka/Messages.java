@@ -17,6 +17,7 @@ import org.roda.core.data.v2.IsRODAObject;
 import org.roda.core.data.v2.LiteOptionalWithCause;
 import org.roda.core.data.v2.SerializableOptional;
 import org.roda.core.data.v2.jobs.Job.JOB_STATE;
+import org.roda.core.data.v2.user.User;
 import org.roda.core.plugins.Plugin;
 import org.roda.core.plugins.orchestrate.JobPluginInfo;
 import org.roda.core.util.IdUtils;
@@ -553,4 +554,73 @@ public class Messages {
       return "PluginAfterAllExecuteIsDone [getPlugin()=" + getPlugin() + ", isWithError()=" + isWithError() + "]";
     }
   }
+
+  /*-------------------- EVENTS RELATED STATIC CLASSES --------------------*/
+  public abstract static class AbstractEventMessage extends AbstractMessage {
+    private static final long serialVersionUID = -2517455273875624115L;
+
+    private String senderId;
+
+    public AbstractEventMessage(String senderId) {
+      super();
+      this.senderId = senderId;
+    }
+
+    public String getSenderId() {
+      return senderId;
+    }
+
+    @Override
+    public String toString() {
+      return "AbstractEventMessage [senderId=" + senderId + "]";
+    }
+  }
+
+  public static class EventUserCreated extends AbstractEventMessage {
+    private static final long serialVersionUID = -2517455273875624115L;
+
+    private User user;
+    private String password;
+
+    public EventUserCreated(User user, String password, String senderId) {
+      super(senderId);
+      this.user = user;
+      this.password = password;
+    }
+
+    public User getUser() {
+      return user;
+    }
+
+    public String getPassword() {
+      return password;
+    }
+
+    @Override
+    public String toString() {
+      return "EventUserCreated [user=" + user + ", getSenderId()=" + getSenderId() + "]";
+    }
+  }
+
+  public static final class EventUserUpdated extends EventUserCreated {
+    private static final long serialVersionUID = -2517455273875624115L;
+
+    private boolean myUser;
+
+    public EventUserUpdated(User user, String password, boolean myUser, String senderId) {
+      super(user, password, senderId);
+      this.myUser = myUser;
+    }
+
+    public boolean isMyUser() {
+      return myUser;
+    }
+
+    @Override
+    public String toString() {
+      return "EventUserUpdated [myUser=" + myUser + ", getUser()=" + getUser() + ", getSenderId()=" + getSenderId()
+        + "]";
+    }
+  }
+
 }
