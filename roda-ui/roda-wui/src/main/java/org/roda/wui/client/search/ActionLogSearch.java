@@ -117,7 +117,7 @@ public class ActionLogSearch extends Composite implements EntitySearch {
         LogEntry selected = logsSearchResultPanel.getSelectionModel().getSelectedObject();
         if (selected != null) {
           LastSelectedItemsSingleton.getInstance().setLastHistory(HistoryUtils.getCurrentHistoryPath());
-          HistoryUtils.newHistory(ShowLogEntry.RESOLVER, selected.getId());
+          HistoryUtils.newHistory(ShowLogEntry.RESOLVER, selected.getUUID());
         }
       }
     });

@@ -18,9 +18,7 @@ import java.nio.file.Paths;
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -411,7 +409,8 @@ public class IndexServiceTest {
     entry.setAddress("Address");
     entry.setDatetime(new Date());
     entry.setDuration(10L);
-    entry.setId("ID");
+    entry.setUUID("ID");
+    entry.setId(entry.getUUID());
     entry.setRelatedObjectID("Related");
     entry.setUsername("Username");
     entry.setState(LOG_ENTRY_STATE.SUCCESS);
@@ -424,11 +423,11 @@ public class IndexServiceTest {
     index.commit(LogEntry.class);
 
     Filter filterDescription = new Filter();
-    filterDescription.add(new SimpleFilterParameter(RodaConstants.LOG_ID, "ID"));
+    filterDescription.add(new SimpleFilterParameter(RodaConstants.INDEX_UUID, "ID"));
     MatcherAssert.assertThat(index.count(LogEntry.class, filterDescription), Matchers.is(1L));
 
     Filter filterDescription2 = new Filter();
-    filterDescription2.add(new SimpleFilterParameter(RodaConstants.LOG_ID, "ID2"));
+    filterDescription2.add(new SimpleFilterParameter(RodaConstants.INDEX_UUID, "ID2"));
     MatcherAssert.assertThat(index.count(LogEntry.class, filterDescription2), Matchers.is(0L));
   }
 
@@ -441,7 +440,8 @@ public class IndexServiceTest {
     entry.setAddress("address");
     entry.setDatetime(new Date());
     entry.setDuration(10L);
-    entry.setId("id");
+    entry.setUUID("id");
+    entry.setId(entry.getUUID());
     entry.setRelatedObjectID("related");
     entry.setUsername("username");
     entry.setState(LOG_ENTRY_STATE.SUCCESS);
@@ -454,7 +454,7 @@ public class IndexServiceTest {
     index.commit(LogEntry.class);
 
     Filter filterDescription = new Filter();
-    filterDescription.add(new SimpleFilterParameter(RodaConstants.LOG_ID, "id"));
+    filterDescription.add(new SimpleFilterParameter(RodaConstants.INDEX_UUID, "id"));
 
     IndexResult<LogEntry> entries = index.find(LogEntry.class, filterDescription, null, new Sublist(),
       Collections.emptyList());
@@ -462,7 +462,7 @@ public class IndexServiceTest {
     assertEquals(entries.getResults().get(0).getActionComponent(), RodaConstants.LOG_ACTION_COMPONENT);
 
     Filter filterDescription2 = new Filter();
-    filterDescription2.add(new SimpleFilterParameter(RodaConstants.LOG_ID, "id2"));
+    filterDescription2.add(new SimpleFilterParameter(RodaConstants.INDEX_UUID, "id2"));
 
     IndexResult<LogEntry> entries2 = index.find(LogEntry.class, filterDescription2, null, new Sublist(),
       Collections.emptyList());

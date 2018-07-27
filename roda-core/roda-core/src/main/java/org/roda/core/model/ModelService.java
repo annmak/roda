@@ -136,12 +136,15 @@ public class ModelService extends ModelObservable {
   private final EventsManager eventsManager;
   private final NodeType nodeType;
   private Object logFileLock = new Object();
+  private String instanceId = "";
+  private long entryLogLineNumber = -1;
 
-  public ModelService(StorageService storage, EventsManager eventsManager, NodeType nodeType) {
+  public ModelService(StorageService storage, EventsManager eventsManager, NodeType nodeType, String instanceId) {
     super(LOGGER);
     this.storage = storage;
     this.eventsManager = eventsManager;
     this.nodeType = nodeType;
+    this.instanceId = instanceId;
     ensureAllContainersExist();
     ensureAllDiretoriesExist();
   }
@@ -263,7 +266,7 @@ public class ModelService extends ModelObservable {
     RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     // XXX possible optimization would be to allow move between storage
-    ModelService sourceModelService = new ModelService(sourceStorage, eventsManager, nodeType);
+    ModelService sourceModelService = new ModelService(sourceStorage, eventsManager, nodeType, instanceId);
     AIP aip;
 
     Directory sourceDirectory = sourceStorage.getDirectory(sourcePath);
@@ -421,7 +424,7 @@ public class ModelService extends ModelObservable {
     RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     // TODO verify structure of source AIP and update it in the storage
-    ModelService sourceModelService = new ModelService(sourceStorage, eventsManager, nodeType);
+    ModelService sourceModelService = new ModelService(sourceStorage, eventsManager, nodeType, instanceId);
     AIP aip;
 
     Directory sourceDirectory = sourceStorage.getDirectory(sourcePath);
@@ -1708,18 +1711,50 @@ public class ModelService extends ModelObservable {
 
   /***************** Log entry related *****************/
   /*****************************************************/
+  public void importLogEntries(InputStream inputStream, String filename) throws AuthorizationDeniedException,
+    GenericException, AlreadyExistsException, RequestNotValidException, NotFoundException {
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
+
+    Path tempDir = null;
+    try {
+      tempDir = Files.createTempDirectory(new Date().getTime() + "");
+      Path path = tempDir.resolve(filename);
+      IOUtils.copyLarge(inputStream, Files.newOutputStream(path));
+
+      for (OptionalWithCause<LogEntry> optionalLogEntry : new LogEntryFileSystemIterable(tempDir)) {
+        // index
+        if (optionalLogEntry.isPresent()) {
+          notifyLogEntryCreated(optionalLogEntry.get()).failOnError();
+        }
+      }
+
+      // store
+      StoragePath logPath = ModelUtils.getLogStoragePath(filename);
+      storage.createBinary(logPath, new FSPathContentPayload(path), false);
+    } catch (IOException e) {
+      throw new GenericException(e);
+    } finally {
+      FSUtils.deletePathQuietly(tempDir);
+    }
+  }
+
   public void addLogEntry(LogEntry logEntry, Path logDirectory, boolean notify)
     throws GenericException, RequestNotValidException, AuthorizationDeniedException, NotFoundException {
     boolean writeIsAllowed = RodaCoreFactory.checkIfWriteIsAllowed(nodeType);
 
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-    String datePlusExtension = sdf.format(new Date()) + ".log";
-    Path logFile = logDirectory.resolve(datePlusExtension);
     synchronized (logFileLock) {
+      String date = sdf.format(new Date());
+      String id = date + "-";
+      if (!"".equals(instanceId)) {
+        id = id + instanceId;
+      }
+      Path logFile = logDirectory.resolve(id + ".log");
 
       // verify if file exists and if not, if older files exist (in that case,
       // move them to storage)
       if (!FSUtils.exists(logFile)) {
+        entryLogLineNumber = 1;
         if (writeIsAllowed) {
           findOldLogsAndMoveThemToStorage(logDirectory, logFile);
         }
@@ -1730,10 +1765,18 @@ public class ModelService extends ModelObservable {
         } catch (IOException e) {
           throw new GenericException("Error creating file to write log into", e);
         }
+      } else if (entryLogLineNumber == -1) {
+        // recalculate entryLogLineNumber as file exists but no value is set
+        // memory
+        entryLogLineNumber = JsonUtils.calculateNumberOfLines(logFile) + 1;
       }
 
       // write to log file
+      logEntry.setId(id + "-" + entryLogLineNumber);
+      logEntry.setInstanceId(instanceId);
+      logEntry.setLineNumber(entryLogLineNumber);
       JsonUtils.appendObjectToFile(logEntry, logFile);
+      entryLogLineNumber++;
 
       // emit event
       if (notify && writeIsAllowed) {
@@ -2983,10 +3026,10 @@ public class ModelService extends ModelObservable {
 
   private boolean isToIndex(String fileName, int daysToIndex) {
     boolean isToIndex = false;
-    String fileNameWithoutExtension = fileName.replaceFirst(".log$", "");
+    String dateFromFileName = fileName.replaceFirst("([0-9]{4}-[0-9]{2}-[0-9]{2}).*", "$1");
 
     try {
-      TemporalAccessor dt = LOG_NAME_DATE_FORMAT.parse(fileNameWithoutExtension);
+      TemporalAccessor dt = LOG_NAME_DATE_FORMAT.parse(dateFromFileName);
 
       if (LocalDate.from(dt).plus(daysToIndex + 1, ChronoUnit.DAYS).isAfter(LocalDate.now())) {
         isToIndex = true;

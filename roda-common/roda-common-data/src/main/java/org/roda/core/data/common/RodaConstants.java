@@ -19,6 +19,7 @@ public final class RodaConstants {
    * RODA Core properties (provided via -D in the command-line)
    */
   public static final String CORE_NODE_TYPE = "roda.node.type";
+  public static final String CORE_NODE_INSTANCE_ID = "roda.node.instanceId";
   public static final String CORE_CLUSTER_HOSTNAME = "roda.cluster.hostname";
   public static final String CORE_CLUSTER_PORT = "roda.cluster.port";
   public static final String CORE_NODE_HOSTNAME = "roda.node.hostname";
@@ -41,7 +42,7 @@ public final class RodaConstants {
   public static final String CORE_SOLR_TYPE = "core.solr.type";
   public static final String CORE_SOLR_HTTP_URL = "core.solr.http.url";
   public static final String CORE_SOLR_CLOUD_URLS = "core.solr.cloud.urls";
-  
+
   public static final String CORE_EVENTS_ENABLED = "core.events.enabled";
 
   public static final String TRASH_CONTAINER = "trash";
@@ -735,6 +736,8 @@ public final class RodaConstants {
   public static final String LOG_STATE = "state";
   public static final String LOG_FILE_ID = "fileID";
   public static final String LOG_SEARCH = "search";
+  public static final String LOG_INSTANCE_ID = "instanceId";
+  public static final String LOG_LINE_NUMBER = "lineNumber";
 
   // MEMBER: USER or GROUP
   public static final String MEMBERS_ID = "id";

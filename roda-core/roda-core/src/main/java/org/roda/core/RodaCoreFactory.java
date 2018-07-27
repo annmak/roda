@@ -113,7 +113,9 @@ import org.roda.core.data.v2.ip.metadata.IndexedPreservationEvent;
 import org.roda.core.data.v2.user.Group;
 import org.roda.core.data.v2.user.RODAMember;
 import org.roda.core.data.v2.user.User;
+import org.roda.core.events.EventsHandler;
 import org.roda.core.events.EventsManager;
+import org.roda.core.events.EventsNotifier;
 import org.roda.core.events.akka.AkkaEventsHandlerAndNotifier;
 import org.roda.core.index.IndexService;
 import org.roda.core.index.schema.SolrBootstrapUtils;
@@ -157,6 +159,7 @@ public class RodaCoreFactory {
   private static boolean instantiated = false;
   private static boolean instantiatedWithoutErrors = true;
   private static NodeType nodeType;
+  private static String instanceId = "";
   private static boolean migrationMode = false;
   private static List<Path> toDeleteDuringShutdown = new ArrayList<>();
 
@@ -394,6 +397,7 @@ public class RodaCoreFactory {
 
   private static void instantiate(NodeType nodeType) {
     RodaCoreFactory.nodeType = nodeType;
+    instanceId = getProperty(RodaConstants.CORE_NODE_INSTANCE_ID, "");
 
     if (!instantiated) {
       try {
@@ -490,6 +494,27 @@ public class RodaCoreFactory {
           : (instantiatedWithoutErrors ? "with success!"
             : "with some errors!!! See logs because these errors might cause instability in the system."));
     }
+  }
+
+  /**
+   * Try to get property from 1) system property (passed in command-line via
+   * -D); 2) environment variable (upper case, replace '.' by '_' and if
+   * property does not start by "RODA_" after replacements, it will be
+   * appended); 3) return default value
+   */
+  private static String getProperty(String property, String defaultValue) {
+    String ret = System.getProperty(property);
+    if (ret == null) {
+      String envProperty = property.toUpperCase().replace('.', '_');
+      if (!envProperty.startsWith("RODA_")) {
+        envProperty = "RODA_" + envProperty;
+      }
+      ret = System.getenv(envProperty);
+      if (ret == null) {
+        ret = defaultValue;
+      }
+    }
+    return ret;
   }
 
   public static boolean isConfigSymbolicLinksAllowed() {
@@ -791,16 +816,23 @@ public class RodaCoreFactory {
   }
 
   private static void instantiateEventsManager() {
+    EventsNotifier eventsNotifier = null;
+    EventsHandler eventsHandler = null;
+
     boolean enabled = getRodaConfiguration().getBoolean(RodaConstants.CORE_EVENTS_ENABLED, false);
-    AkkaEventsHandlerAndNotifier akkaEventsHandlerAndNotifier = new AkkaEventsHandlerAndNotifier();
-    eventsManager = new EventsManager(akkaEventsHandlerAndNotifier, akkaEventsHandlerAndNotifier, nodeType, model,
-      enabled);
+    if (enabled) {
+      AkkaEventsHandlerAndNotifier akkaEventsHandlerAndNotifier = new AkkaEventsHandlerAndNotifier();
+      eventsNotifier = akkaEventsHandlerAndNotifier;
+      eventsHandler = akkaEventsHandlerAndNotifier;
+    }
+
+    eventsManager = new EventsManager(eventsNotifier, eventsHandler, nodeType, model, enabled);
   }
 
   private static void instantiateStorageAndModel() throws GenericException {
     storage = new StorageServiceWrapper(instantiateStorage(), nodeType);
     LOGGER.debug("Finished instantiating storage...");
-    model = new ModelService(storage, eventsManager, nodeType);
+    model = new ModelService(storage, eventsManager, nodeType, instanceId);
     LOGGER.debug("Finished instantiating model...");
   }
 

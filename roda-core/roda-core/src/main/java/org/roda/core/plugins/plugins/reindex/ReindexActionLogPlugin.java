@@ -147,7 +147,13 @@ public class ReindexActionLogPlugin extends AbstractPlugin<Void> {
       jobPluginInfo.incrementObjectsCount();
 
       if (logEntry.isPresent()) {
-        index.reindexActionLog(logEntry.get());
+        LogEntry entry = logEntry.get();
+        // 20180730 hsilva: this is needed for backwards compatability (as
+        // before uuid was equal to id)
+        if (entry.getUUID() == null) {
+          entry.setUUID(entry.getId());
+        }
+        index.reindexActionLog(entry);
         jobPluginInfo.incrementObjectsProcessedWithSuccess();
       } else {
         jobPluginInfo.incrementObjectsProcessedWithFailure();

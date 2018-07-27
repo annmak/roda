@@ -3350,4 +3350,10 @@ public class BrowserHelper {
 
     return "";
   }
+
+  public static void importLogEntries(InputStream inputStream, String filename) throws AuthorizationDeniedException,
+    GenericException, AlreadyExistsException, RequestNotValidException, NotFoundException {
+    ModelService model = RodaCoreFactory.getModelService();
+    model.importLogEntries(inputStream, filename);
+  }
 }
