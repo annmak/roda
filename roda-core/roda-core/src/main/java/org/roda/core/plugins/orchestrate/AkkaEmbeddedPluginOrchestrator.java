@@ -20,6 +20,10 @@ import java.util.concurrent.TimeoutException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.roda.core.RodaCoreFactory;
+import org.roda.core.common.akka.DeadLetterActor;
+import org.roda.core.common.akka.Messages;
+import org.roda.core.common.akka.Messages.JobPartialUpdate;
+import org.roda.core.common.akka.Messages.JobStateUpdated;
 import org.roda.core.common.iterables.CloseableIterable;
 import org.roda.core.data.common.RodaConstants;
 import org.roda.core.data.exceptions.AcquireLockTimeoutException;
@@ -41,7 +45,6 @@ import org.roda.core.data.v2.common.OptionalWithCause;
 import org.roda.core.data.v2.index.IsIndexed;
 import org.roda.core.data.v2.index.filter.Filter;
 import org.roda.core.data.v2.index.select.SelectedItemsList;
-import org.roda.core.data.v2.index.sort.Sorter;
 import org.roda.core.data.v2.jobs.Job;
 import org.roda.core.data.v2.jobs.Job.JOB_STATE;
 import org.roda.core.data.v2.jobs.PluginType;
@@ -54,10 +57,6 @@ import org.roda.core.model.utils.ModelUtils;
 import org.roda.core.plugins.Plugin;
 import org.roda.core.plugins.PluginOrchestrator;
 import org.roda.core.plugins.orchestrate.akka.AkkaJobsManager;
-import org.roda.core.plugins.orchestrate.akka.DeadLetterActor;
-import org.roda.core.plugins.orchestrate.akka.Messages;
-import org.roda.core.plugins.orchestrate.akka.Messages.JobPartialUpdate;
-import org.roda.core.plugins.orchestrate.akka.Messages.JobStateUpdated;
 import org.roda.core.plugins.plugins.PluginHelper;
 import org.roda.core.plugins.plugins.internal.CleanUnfinishedJobsPlugin;
 import org.roda.core.util.IdUtils;
@@ -141,28 +140,27 @@ public class AkkaEmbeddedPluginOrchestrator implements PluginOrchestrator {
 
   @Override
   public void shutdown() {
-    LOGGER.info("Going to shutdown actor system");
+    LOGGER.info("Going to shutdown JOBS actor system");
     Future<Terminated> terminate = jobsSystem.terminate();
     terminate.onComplete(new OnComplete<Terminated>() {
       @Override
       public void onComplete(Throwable failure, Terminated result) {
         if (failure != null) {
-          LOGGER.error("Error while shutting down actor system", failure);
+          LOGGER.error("Error while shutting down JOBS actor system", failure);
         } else {
-          LOGGER.info("Done shutting down actor system");
+          LOGGER.info("Done shutting down JOBS actor system");
         }
       }
     }, jobsSystem.dispatcher());
 
     try {
-      LOGGER.info("Waiting up to 30 seconds for actor system to shutdown");
+      LOGGER.info("Waiting up to 30 seconds for JOBS actor system to shutdown");
       Await.result(jobsSystem.whenTerminated(), Duration.create(30, "seconds"));
     } catch (TimeoutException e) {
-      LOGGER.warn("Actor system shutdown wait timed out, continuing...");
+      LOGGER.warn("JOBS Actor system shutdown wait timed out, continuing...");
     } catch (Exception e) {
-      LOGGER.error("Error while shutting down actor system", e);
+      LOGGER.error("Error while shutting down JOBS actor system", e);
     }
-
   }
 
   @Override

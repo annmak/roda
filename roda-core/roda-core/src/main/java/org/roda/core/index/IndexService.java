@@ -208,7 +208,7 @@ public class IndexService {
 
   public void reindexAIPs()
     throws RequestNotValidException, GenericException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     clearAIPs();
     LOGGER.info("{} > Listing AIPs", new Date().getTime());
@@ -233,14 +233,14 @@ public class IndexService {
   }
 
   public void commitAIPs() throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     commit(IndexedAIP.class, IndexedRepresentation.class, IndexedFile.class, IndexedPreservationEvent.class,
       IndexedPreservationAgent.class);
   }
 
   public void clearAIPs() throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     clearIndex(RodaConstants.INDEX_AIP);
     clearIndex(RodaConstants.INDEX_FILE);
@@ -250,7 +250,7 @@ public class IndexService {
   }
 
   public void optimizeAIPs() throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       getSolrClient().optimize(RodaConstants.INDEX_AIP);
@@ -264,7 +264,7 @@ public class IndexService {
   }
 
   public ReturnWithExceptions<Void, ModelObserver> reindexAIP(AIP aip) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (ret.isEmpty()) {
       ret = observer.aipCreated(aip);
     }
@@ -272,7 +272,7 @@ public class IndexService {
   }
 
   public ReturnWithExceptions<Void, ModelObserver> reindexRepresentation(Representation rep) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (ret.isEmpty()) {
       ret = observer.representationCreated(rep);
     }
@@ -280,7 +280,7 @@ public class IndexService {
   }
 
   public ReturnWithExceptions<Void, ModelObserver> reindexFile(File file) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (ret.isEmpty()) {
       ret = observer.fileCreated(file);
     }
@@ -288,7 +288,7 @@ public class IndexService {
   }
 
   public ReturnWithExceptions<Void, ModelObserver> reindexDIP(DIP dip) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (ret.isEmpty()) {
       ret = observer.dipCreated(dip, false);
     }
@@ -296,7 +296,7 @@ public class IndexService {
   }
 
   public ReturnWithExceptions<Void, ModelObserver> reindexDIPFile(DIPFile file) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (ret.isEmpty()) {
       ret = observer.dipFileCreated(file);
     }
@@ -304,7 +304,7 @@ public class IndexService {
   }
 
   public ReturnWithExceptions<Void, ModelObserver> reindexAIPPreservationEvents(AIP aip) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (ret.isEmpty()) {
       ret = observer.indexPreservationsEvents(aip.getId());
     }
@@ -314,7 +314,7 @@ public class IndexService {
   public ReturnWithExceptionsWrapper reindexPreservationAgents() throws RequestNotValidException, GenericException {
     ReturnWithExceptionsWrapper wrapper = new ReturnWithExceptionsWrapper();
 
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (!ret.isEmpty()) {
       wrapper.addToList(ret);
     } else {
@@ -332,7 +332,7 @@ public class IndexService {
     CloseableIterable<OptionalWithCause<PreservationMetadata>> iterable) {
     ReturnWithExceptionsWrapper wrapper = new ReturnWithExceptionsWrapper();
 
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (!ret.isEmpty()) {
       wrapper.addToList(ret);
       return wrapper;
@@ -346,7 +346,7 @@ public class IndexService {
   }
 
   public ReturnWithExceptions<Void, ModelObserver> reindexJob(Job job) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (ret.isEmpty()) {
       ret = observer.jobCreatedOrUpdated(job, true);
     }
@@ -354,7 +354,7 @@ public class IndexService {
   }
 
   public ReturnWithExceptions<Void, ModelObserver> reindexJobReport(Report jobReport, Job job) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (ret.isEmpty()) {
       ret = observer.jobReportCreatedOrUpdated(jobReport, job);
     }
@@ -362,7 +362,7 @@ public class IndexService {
   }
 
   public ReturnWithExceptions<Void, ModelObserver> reindexRisk(Risk risk) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (ret.isEmpty()) {
       ret = observer.riskCreatedOrUpdated(risk, 0, false);
     }
@@ -379,7 +379,7 @@ public class IndexService {
   }
 
   public ReturnWithExceptions<Void, ModelObserver> reindexFormat(Format format) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (ret.isEmpty()) {
       ret = observer.formatCreatedOrUpdated(format, false);
     }
@@ -396,7 +396,7 @@ public class IndexService {
   }
 
   public ReturnWithExceptions<Void, ModelObserver> reindexRiskIncidence(RiskIncidence riskIncidence) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (ret.isEmpty()) {
       ret = observer.riskIncidenceCreatedOrUpdated(riskIncidence, false);
     }
@@ -404,7 +404,7 @@ public class IndexService {
   }
 
   public ReturnWithExceptions<Void, ModelObserver> reindexRepresentationInformation(RepresentationInformation ri) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (ret.isEmpty()) {
       ret = observer.representationInformationCreatedOrUpdated(ri, false);
     }
@@ -421,7 +421,7 @@ public class IndexService {
   }
 
   public ReturnWithExceptions<Void, ModelObserver> reindexNotification(Notification notification) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (ret.isEmpty()) {
       ret = observer.notificationCreatedOrUpdated(notification);
     }
@@ -430,7 +430,7 @@ public class IndexService {
 
   public void reindexActionLogs()
     throws GenericException, NotFoundException, AuthorizationDeniedException, RequestNotValidException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try (CloseableIterable<Resource> actionLogs = model.getStorage()
       .listResourcesUnderContainer(DefaultStoragePath.parse(RodaConstants.STORAGE_CONTAINER_ACTIONLOG), false)) {
@@ -448,7 +448,7 @@ public class IndexService {
   }
 
   public void reindexActionLog(InputStreamReader reader) throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     String line;
     BufferedReader br = new BufferedReader(reader);
@@ -467,7 +467,7 @@ public class IndexService {
   }
 
   public ReturnWithExceptions<Void, ModelObserver> reindexActionLog(LogEntry entry) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (ret.isEmpty()) {
       ret = observer.logEntryCreated(entry);
     }
@@ -475,13 +475,13 @@ public class IndexService {
   }
 
   public void deleteAllActionLog() throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     clearIndex(RodaConstants.INDEX_ACTION_LOG);
   }
 
   public void deleteActionLog(Date until) throws SolrServerException, IOException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     String dateString = SolrUtils.formatDate(until);
     String query = RodaConstants.LOG_DATETIME + ":[* TO " + dateString + "]";
@@ -492,7 +492,7 @@ public class IndexService {
   public <T extends IsRODAObject> void reindexAll(StorageService storage, Class<T> objectClass)
     throws NotFoundException, GenericException, AuthorizationDeniedException, RequestNotValidException, IOException,
     IsStillUpdatingException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     if (AIP.class.equals(objectClass)) {
       reindexAIPs();
@@ -525,7 +525,7 @@ public class IndexService {
   }
 
   public <T extends Serializable> ReturnWithExceptions<Void, ModelObserver> reindex(T object) {
-    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueReturn(nodeType);
+    ReturnWithExceptions<Void, ModelObserver> ret = RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseReturn(nodeType);
     if (!ret.isEmpty()) {
       return ret;
     }
@@ -565,7 +565,7 @@ public class IndexService {
   }
 
   public void clearIndex(String indexName) throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       getSolrClient().deleteByQuery(indexName, "*:*");
@@ -577,7 +577,7 @@ public class IndexService {
   }
 
   public void clearIndexes(List<String> indexNames) throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     for (String indexName : indexNames) {
       clearIndex(indexName);
@@ -585,7 +585,7 @@ public class IndexService {
   }
 
   public void clearRepositoryEventIndex() throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     String indexName = RodaConstants.INDEX_PRESERVATION_EVENTS;
     try {
@@ -599,7 +599,7 @@ public class IndexService {
   }
 
   public void clearAIPEventIndex() throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     String indexName = RodaConstants.INDEX_PRESERVATION_EVENTS;
     try {
@@ -613,7 +613,7 @@ public class IndexService {
   }
 
   public void optimizeIndex(String indexName) throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       getSolrClient().optimize(indexName);
@@ -623,7 +623,7 @@ public class IndexService {
   }
 
   public void optimizeIndexes(List<String> indexNames) throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     for (String indexName : indexNames) {
       optimizeIndex(indexName);
@@ -631,11 +631,25 @@ public class IndexService {
   }
 
   @SafeVarargs
-  public final void commit(Class<? extends IsIndexed>... classToCommit)
+  public final void commit(boolean handleAuthorizationExceptionSilently, Class<? extends IsIndexed>... classToCommit)
     throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    try {
+      RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
+    } catch (AuthorizationDeniedException e) {
+      if (handleAuthorizationExceptionSilently) {
+        return;
+      } else {
+        throw e;
+      }
+    }
 
     SolrUtils.commit(getSolrClient(), classToCommit);
+  }
+
+  @SafeVarargs
+  public final void commit(Class<? extends IsIndexed>... classToCommit)
+    throws GenericException, AuthorizationDeniedException {
+    commit(false, classToCommit);
   }
 
   public <T extends IsIndexed> List<String> suggest(Class<T> returnClass, String field, String query, User user,
@@ -647,14 +661,14 @@ public class IndexService {
     IndexRunnable<T> indexRunnable, Consumer<RODAException> exceptionHandler)
     throws GenericException, RequestNotValidException, AuthorizationDeniedException {
     // FIXME 20180720 hsilva: see if this is necessary
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     SolrUtils.execute(getSolrClient(), classToRetrieve, filter, fieldsToReturn, indexRunnable, exceptionHandler);
   }
 
   public <T extends IsIndexed> void delete(Class<T> classToRetrieve, List<String> ids)
     throws GenericException, RequestNotValidException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     SolrUtils.delete(getSolrClient(), classToRetrieve, ids, this);
   }
@@ -669,21 +683,21 @@ public class IndexService {
 
   public <T extends IsIndexed> void delete(Class<T> classToRetrieve, Filter filter)
     throws AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     SolrUtils.delete(getSolrClient(), classToRetrieve, filter, this);
   }
 
   public <T extends IsIndexed> void deleteByQuery(String classToRetrieve, Filter filter)
     throws GenericException, RequestNotValidException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     SolrUtils.deleteByQuery(getSolrClient(), classToRetrieve, filter);
   }
 
   public <T extends IsIndexed, M extends IsModelObject> void create(Class<T> classToCreate, M instance)
     throws AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     SolrUtils.create(getSolrClient(), classToCreate, instance, this);
   }

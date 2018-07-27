@@ -9,6 +9,8 @@ package org.roda.core.plugins.orchestrate.akka;
 
 import java.util.List;
 
+import org.roda.core.common.akka.AkkaBaseActor;
+import org.roda.core.common.akka.Messages;
 import org.roda.core.data.v2.IsRODAObject;
 import org.roda.core.data.v2.LiteOptionalWithCause;
 import org.roda.core.index.IndexService;

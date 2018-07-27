@@ -19,9 +19,11 @@ import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 
 import org.roda.core.RodaCoreFactory;
+import org.roda.core.common.akka.AkkaBaseActor;
+import org.roda.core.common.akka.Messages;
+import org.roda.core.common.akka.Messages.JobsManagerAcquireLock;
+import org.roda.core.common.akka.Messages.JobsManagerReleaseLock;
 import org.roda.core.data.v2.jobs.Job;
-import org.roda.core.plugins.orchestrate.akka.Messages.JobsManagerAcquireLock;
-import org.roda.core.plugins.orchestrate.akka.Messages.JobsManagerReleaseLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -113,8 +113,8 @@ import org.roda.core.data.v2.ip.metadata.IndexedPreservationEvent;
 import org.roda.core.data.v2.user.Group;
 import org.roda.core.data.v2.user.RODAMember;
 import org.roda.core.data.v2.user.User;
-import org.roda.core.events.AkkaEventsManager;
 import org.roda.core.events.EventsManager;
+import org.roda.core.events.akka.AkkaEventsHandlerAndNotifier;
 import org.roda.core.index.IndexService;
 import org.roda.core.index.schema.SolrBootstrapUtils;
 import org.roda.core.index.schema.SolrCollectionRegistry;
@@ -200,7 +200,7 @@ public class RodaCoreFactory {
   private static AkkaDistributedPluginWorker akkaDistributedPluginWorker;
 
   // Events related
-  public static EventsManager eventsManager;
+  private static EventsManager eventsManager;
 
   private static LdapUtility ldapUtility;
   private static Path rodaApacheDSDataDirectory = null;
@@ -291,25 +291,29 @@ public class RodaCoreFactory {
     return instantiatedWithoutErrors;
   }
 
-  public static void checkIfSlaveModeIsOnAndIfTrueThrowException(NodeType nodeType)
+  public static void checkIfWriteIsAllowedAndIfFalseThrowException(NodeType nodeType)
     throws AuthorizationDeniedException {
-    if (nodeType == NodeType.SLAVE) {
-      throw new AuthorizationDeniedException("Cannot execute non read-only method in read-only instance");
+    if (!checkIfWriteIsAllowed(nodeType)) {
+      throwExceptionIfWriteIsNotAllowed();
     }
   }
 
-  public static ReturnWithExceptions<Void, ModelObserver> checkIfSlaveModeIsOnAndIfTrueReturn(NodeType nodeType) {
+  public static void throwExceptionIfWriteIsNotAllowed() throws AuthorizationDeniedException {
+    throw new AuthorizationDeniedException("Cannot execute non read-only method in read-only instance");
+  }
+
+  public static ReturnWithExceptions<Void, ModelObserver> checkIfWriteIsAllowedAndIfFalseReturn(NodeType nodeType) {
     ReturnWithExceptions<Void, ModelObserver> ret = new ReturnWithExceptions<Void, ModelObserver>();
     try {
-      checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+      checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
     } catch (AuthorizationDeniedException e) {
       ret.add(e);
     }
     return ret;
   }
 
-  public static boolean checkIfSlaveModeIsOn(NodeType nodeType) {
-    return nodeType == NodeType.SLAVE;
+  public static boolean checkIfWriteIsAllowed(NodeType nodeType) {
+    return nodeType != NodeType.SLAVE;
   }
 
   public static void instantiate() {
@@ -424,13 +428,12 @@ public class RodaCoreFactory {
         // initialize metrics stuff
         initializeMetrics();
 
+        // instantiate events manager
+        instantiateEventsManager();
+
         // instantiate storage and model service
         instantiateStorageAndModel();
         LOGGER.debug("Finished instantiating storage & model");
-
-        // FIXME
-        AkkaEventsManager akkaEventsOrchestrator = new AkkaEventsManager();
-        eventsManager = new EventsManager(akkaEventsOrchestrator, akkaEventsOrchestrator, nodeType, model);
 
         // instantiate solr and index service
         instantiateSolrAndIndexService(nodeType);
@@ -787,10 +790,17 @@ public class RodaCoreFactory {
     }
   }
 
+  private static void instantiateEventsManager() {
+    boolean enabled = getRodaConfiguration().getBoolean(RodaConstants.CORE_EVENTS_ENABLED, false);
+    AkkaEventsHandlerAndNotifier akkaEventsHandlerAndNotifier = new AkkaEventsHandlerAndNotifier();
+    eventsManager = new EventsManager(akkaEventsHandlerAndNotifier, akkaEventsHandlerAndNotifier, nodeType, model,
+      enabled);
+  }
+
   private static void instantiateStorageAndModel() throws GenericException {
     storage = new StorageServiceWrapper(instantiateStorage(), nodeType);
     LOGGER.debug("Finished instantiating storage...");
-    model = new ModelService(storage, nodeType);
+    model = new ModelService(storage, eventsManager, nodeType);
     LOGGER.debug("Finished instantiating model...");
   }
 
@@ -1456,6 +1466,10 @@ public class RodaCoreFactory {
 
   public static PluginOrchestrator getPluginOrchestrator() {
     return pluginOrchestrator;
+  }
+
+  public static EventsManager getEventsManager() {
+    return eventsManager;
   }
 
   public static TransferredResourcesScanner getTransferredResourcesScanner() {

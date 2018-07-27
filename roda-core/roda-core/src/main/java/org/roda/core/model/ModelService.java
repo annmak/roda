@@ -96,6 +96,7 @@ import org.roda.core.data.v2.user.RODAMember;
 import org.roda.core.data.v2.user.User;
 import org.roda.core.data.v2.validation.ValidationException;
 import org.roda.core.data.v2.validation.ValidationReport;
+import org.roda.core.events.EventsManager;
 import org.roda.core.model.iterables.LogEntryFileSystemIterable;
 import org.roda.core.model.iterables.LogEntryStorageIterable;
 import org.roda.core.model.utils.ModelUtils;
@@ -132,12 +133,14 @@ public class ModelService extends ModelObservable {
   private static final DateTimeFormatter LOG_NAME_DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE;
   private static final boolean FAIL_IF_NO_DESCRIPTIVE_METADATA_SCHEMA = false;
   private final StorageService storage;
+  private final EventsManager eventsManager;
   private final NodeType nodeType;
   private Object logFileLock = new Object();
 
-  public ModelService(StorageService storage, NodeType nodeType) {
+  public ModelService(StorageService storage, EventsManager eventsManager, NodeType nodeType) {
     super(LOGGER);
     this.storage = storage;
+    this.eventsManager = eventsManager;
     this.nodeType = nodeType;
     ensureAllContainersExist();
     ensureAllDiretoriesExist();
@@ -257,10 +260,10 @@ public class ModelService extends ModelObservable {
   public AIP createAIP(String aipId, StorageService sourceStorage, StoragePath sourcePath, boolean notify,
     String createdBy) throws RequestNotValidException, GenericException, AuthorizationDeniedException,
     AlreadyExistsException, NotFoundException, ValidationException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     // XXX possible optimization would be to allow move between storage
-    ModelService sourceModelService = new ModelService(sourceStorage, nodeType);
+    ModelService sourceModelService = new ModelService(sourceStorage, eventsManager, nodeType);
     AIP aip;
 
     Directory sourceDirectory = sourceStorage.getDirectory(sourcePath);
@@ -290,7 +293,7 @@ public class ModelService extends ModelObservable {
   public AIP createAIP(String parentId, String type, Permissions permissions, List<String> ingestSIPIds,
     String ingestJobId, boolean notify, String createdBy, boolean isGhost) throws RequestNotValidException,
     NotFoundException, GenericException, AlreadyExistsException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     AIPState state = AIPState.ACTIVE;
     Directory directory = storage.createRandomDirectory(DefaultStoragePath.parse(RodaConstants.STORAGE_CONTAINER_AIP));
@@ -330,7 +333,7 @@ public class ModelService extends ModelObservable {
   public AIP createAIP(AIPState state, String parentId, String type, Permissions permissions, boolean notify,
     String createdBy) throws RequestNotValidException, NotFoundException, GenericException, AlreadyExistsException,
     AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     Directory directory = storage.createRandomDirectory(DefaultStoragePath.parse(RodaConstants.STORAGE_CONTAINER_AIP));
     String id = directory.getStoragePath().getName();
@@ -349,7 +352,7 @@ public class ModelService extends ModelObservable {
   public AIP createAIP(AIPState state, String parentId, String type, Permissions permissions, String ingestSIPUUID,
     List<String> ingestSIPIds, String ingestJobId, boolean notify, String createdBy) throws RequestNotValidException,
     NotFoundException, GenericException, AlreadyExistsException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     Directory directory = storage.createRandomDirectory(DefaultStoragePath.parse(RodaConstants.STORAGE_CONTAINER_AIP));
     String id = directory.getStoragePath().getName();
@@ -415,10 +418,10 @@ public class ModelService extends ModelObservable {
   public AIP updateAIP(String aipId, StorageService sourceStorage, StoragePath sourcePath, String updatedBy)
     throws RequestNotValidException, NotFoundException, GenericException, AuthorizationDeniedException,
     AlreadyExistsException, ValidationException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     // TODO verify structure of source AIP and update it in the storage
-    ModelService sourceModelService = new ModelService(sourceStorage, nodeType);
+    ModelService sourceModelService = new ModelService(sourceStorage, eventsManager, nodeType);
     AIP aip;
 
     Directory sourceDirectory = sourceStorage.getDirectory(sourcePath);
@@ -447,7 +450,7 @@ public class ModelService extends ModelObservable {
 
   public AIP updateAIP(AIP aip, String updatedBy)
     throws GenericException, NotFoundException, RequestNotValidException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     aip.setUpdatedBy(updatedBy);
     aip.setUpdatedOn(new Date());
@@ -458,7 +461,7 @@ public class ModelService extends ModelObservable {
 
   public AIP updateAIPState(AIP aip, String updatedBy)
     throws GenericException, NotFoundException, RequestNotValidException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     aip.setUpdatedBy(updatedBy);
     aip.setUpdatedOn(new Date());
@@ -470,7 +473,7 @@ public class ModelService extends ModelObservable {
 
   public AIP moveAIP(String aipId, String parentId, String updatedBy)
     throws GenericException, NotFoundException, RequestNotValidException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     if (aipId.equals(parentId)) {
       throw new RequestNotValidException("Cannot set itself as its parent: " + aipId);
@@ -491,7 +494,7 @@ public class ModelService extends ModelObservable {
 
   public void deleteAIP(String aipId)
     throws RequestNotValidException, NotFoundException, GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath aipPath = ModelUtils.getAIPStoragePath(aipId);
     storage.deleteResource(aipPath);
@@ -517,7 +520,7 @@ public class ModelService extends ModelObservable {
 
   public void changeAIPType(String aipId, String type, String updatedBy)
     throws RequestNotValidException, NotFoundException, GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     AIP aip = retrieveAIP(aipId);
     aip.setType(type);
@@ -598,7 +601,7 @@ public class ModelService extends ModelObservable {
     String descriptiveMetadataId, ContentPayload payload, String descriptiveMetadataType,
     String descriptiveMetadataVersion, boolean notify) throws RequestNotValidException, GenericException,
     AlreadyExistsException, AuthorizationDeniedException, NotFoundException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath binaryPath = ModelUtils.getDescriptiveMetadataStoragePath(aipId, representationId,
       descriptiveMetadataId);
@@ -633,7 +636,7 @@ public class ModelService extends ModelObservable {
     throws RequestNotValidException, GenericException, NotFoundException, AuthorizationDeniedException {
     DescriptiveMetadata ret;
 
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath binaryPath = ModelUtils.getDescriptiveMetadataStoragePath(aipId, representationId,
       descriptiveMetadataId);
@@ -683,7 +686,7 @@ public class ModelService extends ModelObservable {
 
   public void deleteDescriptiveMetadata(String aipId, String representationId, String descriptiveMetadataId)
     throws RequestNotValidException, NotFoundException, GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath binaryPath = ModelUtils.getDescriptiveMetadataStoragePath(aipId, representationId,
       descriptiveMetadataId);
@@ -735,7 +738,7 @@ public class ModelService extends ModelObservable {
   public BinaryVersion revertDescriptiveMetadataVersion(String aipId, String representationId,
     String descriptiveMetadataId, String versionId, Map<String, String> properties)
     throws RequestNotValidException, GenericException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath binaryPath = ModelUtils.getDescriptiveMetadataStoragePath(aipId, representationId,
       descriptiveMetadataId);
@@ -866,7 +869,7 @@ public class ModelService extends ModelObservable {
   public Representation createRepresentation(String aipId, String representationId, boolean original, String type,
     boolean notify, String createdBy) throws RequestNotValidException, GenericException, NotFoundException,
     AuthorizationDeniedException, AlreadyExistsException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     Representation representation = new Representation(representationId, aipId, original, type);
     representation.setCreatedBy(createdBy);
@@ -893,7 +896,7 @@ public class ModelService extends ModelObservable {
     AlreadyExistsException {
     Representation representation;
 
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     if (justData) {
       StoragePath dataPath = ModelUtils.getRepresentationDataStoragePath(aipId, representationId);
@@ -927,7 +930,7 @@ public class ModelService extends ModelObservable {
 
   public void changeRepresentationType(String aipId, String representationId, String type, String updatedBy)
     throws RequestNotValidException, NotFoundException, GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     AIP aip = retrieveAIP(aipId);
     Iterator<Representation> it = aip.getRepresentations().iterator();
@@ -949,7 +952,7 @@ public class ModelService extends ModelObservable {
   public void changeRepresentationStates(String aipId, String representationId, List<String> newStates,
     String updatedBy)
     throws RequestNotValidException, NotFoundException, GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     AIP aip = retrieveAIP(aipId);
     Iterator<Representation> it = aip.getRepresentations().iterator();
@@ -977,7 +980,7 @@ public class ModelService extends ModelObservable {
     NotFoundException, GenericException, AuthorizationDeniedException, ValidationException {
     Representation representation;
 
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     // XXX possible optimization only creating new files, updating
     // changed and removing deleted
@@ -999,7 +1002,7 @@ public class ModelService extends ModelObservable {
 
   public void deleteRepresentation(String aipId, String representationId)
     throws RequestNotValidException, NotFoundException, GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath representationPath = ModelUtils.getRepresentationStoragePath(aipId, representationId);
     storage.deleteResource(representationPath);
@@ -1080,7 +1083,7 @@ public class ModelService extends ModelObservable {
   public File createFile(String aipId, String representationId, List<String> directoryPath, String fileId,
     ContentPayload contentPayload, boolean notify) throws RequestNotValidException, GenericException,
     AlreadyExistsException, AuthorizationDeniedException, NotFoundException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath filePath = ModelUtils.getFileStoragePath(aipId, representationId, directoryPath, fileId);
 
@@ -1097,7 +1100,7 @@ public class ModelService extends ModelObservable {
   public File createFile(String aipId, String representationId, List<String> directoryPath, String fileId,
     String dirName, boolean notify)
     throws RequestNotValidException, GenericException, AlreadyExistsException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath filePath = ModelUtils.getFileStoragePath(aipId, representationId, directoryPath, fileId);
     final Directory createdDirectory = storage.createDirectory(DefaultStoragePath.parse(filePath, dirName));
@@ -1113,7 +1116,7 @@ public class ModelService extends ModelObservable {
   public File updateFile(String aipId, String representationId, List<String> directoryPath, String fileId,
     ContentPayload contentPayload, boolean createIfNotExists, boolean notify)
     throws RequestNotValidException, GenericException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     boolean asReference = false;
     StoragePath filePath = ModelUtils.getFileStoragePath(aipId, representationId, directoryPath, fileId);
@@ -1137,7 +1140,7 @@ public class ModelService extends ModelObservable {
 
   public void deleteFile(String aipId, String representationId, List<String> directoryPath, String fileId,
     boolean notify) throws RequestNotValidException, NotFoundException, GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath filePath = ModelUtils.getFileStoragePath(aipId, representationId, directoryPath, fileId);
     storage.deleteResource(filePath);
@@ -1149,7 +1152,7 @@ public class ModelService extends ModelObservable {
 
   public File renameFolder(File folder, String newName, boolean reindexResources) throws AlreadyExistsException,
     GenericException, NotFoundException, RequestNotValidException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath folderStoragePath = ModelUtils.getFileStoragePath(folder);
 
@@ -1174,7 +1177,7 @@ public class ModelService extends ModelObservable {
   public File moveFile(File file, String newAipId, String newRepresentationId, List<String> newDirectoryPath,
     String newId, boolean reindexResources) throws AlreadyExistsException, GenericException, NotFoundException,
     RequestNotValidException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath fileStoragePath = ModelUtils.getFileStoragePath(file);
     if (!storage.exists(fileStoragePath)) {
@@ -1243,7 +1246,7 @@ public class ModelService extends ModelObservable {
     List<LinkingIdentifier> targets, PluginState outcomeState, String outcomeDetail, String outcomeExtension,
     List<String> agentIds, boolean notify) throws GenericException, ValidationException, NotFoundException,
     RequestNotValidException, AuthorizationDeniedException, AlreadyExistsException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     String id = IdUtils.createPreservationMetadataId(PreservationMetadataType.EVENT);
     ContentPayload premisEvent = PremisV3Utils.createPremisEventBinary(id, new Date(), eventType.toString(),
@@ -1317,7 +1320,7 @@ public class ModelService extends ModelObservable {
     String representationId, List<String> fileDirectoryPath, String fileId, ContentPayload payload, boolean notify)
     throws GenericException, NotFoundException, RequestNotValidException, AuthorizationDeniedException,
     AlreadyExistsException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     String identifier = fileId;
     if (!PreservationMetadataType.FILE.equals(type)) {
@@ -1330,7 +1333,7 @@ public class ModelService extends ModelObservable {
   public PreservationMetadata createPreservationMetadata(PreservationMetadataType type, String aipId,
     List<String> fileDirectoryPath, String fileId, ContentPayload payload, boolean notify) throws GenericException,
     NotFoundException, RequestNotValidException, AuthorizationDeniedException, AlreadyExistsException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     String id = IdUtils.getPreservationId(type, aipId, null, fileDirectoryPath, fileId);
     return createPreservationMetadata(type, id, aipId, null, fileDirectoryPath, fileId, payload, notify);
@@ -1339,7 +1342,7 @@ public class ModelService extends ModelObservable {
   public PreservationMetadata createPreservationMetadata(PreservationMetadataType type, String aipId,
     String representationId, ContentPayload payload, boolean notify) throws GenericException, NotFoundException,
     RequestNotValidException, AuthorizationDeniedException, AlreadyExistsException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     String id = IdUtils.getPreservationId(type, aipId, representationId, null, null);
     return createPreservationMetadata(type, id, aipId, representationId, null, null, payload, notify);
@@ -1348,7 +1351,7 @@ public class ModelService extends ModelObservable {
   public PreservationMetadata createPreservationMetadata(PreservationMetadataType type, String id,
     ContentPayload payload, boolean notify) throws GenericException, NotFoundException, RequestNotValidException,
     AuthorizationDeniedException, AlreadyExistsException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     return createPreservationMetadata(type, id, null, null, null, null, payload, notify);
   }
@@ -1357,7 +1360,7 @@ public class ModelService extends ModelObservable {
     String representationId, List<String> fileDirectoryPath, String fileId, ContentPayload payload, boolean notify)
     throws GenericException, NotFoundException, RequestNotValidException, AuthorizationDeniedException,
     AlreadyExistsException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     PreservationMetadata pm = new PreservationMetadata();
     pm.setId(id);
@@ -1380,7 +1383,7 @@ public class ModelService extends ModelObservable {
   public PreservationMetadata updatePreservationMetadata(String id, PreservationMetadataType type, String aipId,
     String representationId, List<String> fileDirectoryPath, String fileId, ContentPayload payload, boolean notify)
     throws GenericException, NotFoundException, RequestNotValidException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     PreservationMetadata pm = new PreservationMetadata();
     pm.setId(id);
@@ -1403,7 +1406,7 @@ public class ModelService extends ModelObservable {
   public void deletePreservationMetadata(PreservationMetadataType type, String aipId, String representationId,
     String id, boolean notify)
     throws NotFoundException, GenericException, AuthorizationDeniedException, RequestNotValidException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     PreservationMetadata pm = new PreservationMetadata();
     pm.setAipId(aipId);
@@ -1593,7 +1596,7 @@ public class ModelService extends ModelObservable {
   public OtherMetadata createOrUpdateOtherMetadata(String aipId, String representationId,
     List<String> fileDirectoryPath, String fileId, String fileSuffix, String type, ContentPayload payload,
     boolean notify) throws RequestNotValidException, GenericException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath binaryPath = ModelUtils.getOtherMetadataStoragePath(aipId, representationId, fileDirectoryPath, fileId,
       fileSuffix, type);
@@ -1619,7 +1622,7 @@ public class ModelService extends ModelObservable {
   public void deleteOtherMetadata(String aipId, String representationId, List<String> fileDirectoryPath, String fileId,
     String fileSuffix, String type)
     throws GenericException, NotFoundException, AuthorizationDeniedException, RequestNotValidException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath binaryPath = ModelUtils.getOtherMetadataStoragePath(aipId, representationId, fileDirectoryPath, fileId,
       fileSuffix, type);
@@ -1707,7 +1710,7 @@ public class ModelService extends ModelObservable {
   /*****************************************************/
   public void addLogEntry(LogEntry logEntry, Path logDirectory, boolean notify)
     throws GenericException, RequestNotValidException, AuthorizationDeniedException, NotFoundException {
-    boolean slaveModeOn = RodaCoreFactory.checkIfSlaveModeIsOn(nodeType);
+    boolean writeIsAllowed = RodaCoreFactory.checkIfWriteIsAllowed(nodeType);
 
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
     String datePlusExtension = sdf.format(new Date()) + ".log";
@@ -1717,7 +1720,7 @@ public class ModelService extends ModelObservable {
       // verify if file exists and if not, if older files exist (in that case,
       // move them to storage)
       if (!FSUtils.exists(logFile)) {
-        if (!slaveModeOn) {
+        if (writeIsAllowed) {
           findOldLogsAndMoveThemToStorage(logDirectory, logFile);
         }
         try {
@@ -1733,7 +1736,7 @@ public class ModelService extends ModelObservable {
       JsonUtils.appendObjectToFile(logEntry, logFile);
 
       // emit event
-      if (notify && !slaveModeOn) {
+      if (notify && writeIsAllowed) {
         notifyLogEntryCreated(logEntry).failOnError();
       }
     }
@@ -1782,7 +1785,7 @@ public class ModelService extends ModelObservable {
 
   public User registerUser(User user, String password, boolean notify)
     throws GenericException, UserAlreadyExistsException, EmailAlreadyExistsException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     User registeredUser = UserUtility.getLdapUtility().registerUser(user, password);
     if (notify) {
@@ -1811,19 +1814,19 @@ public class ModelService extends ModelObservable {
   public User createUser(User user, String password, boolean notify, boolean isHandlingEvent)
     throws GenericException, EmailAlreadyExistsException, UserAlreadyExistsException, IllegalOperationException,
     NotFoundException, AuthorizationDeniedException {
-    boolean slaveModeIsOn = RodaCoreFactory.checkIfSlaveModeIsOn(nodeType);
+    boolean writeIsAllowed = RodaCoreFactory.checkIfWriteIsAllowed(nodeType);
 
     User createdUser = UserUtility.getLdapUtility().addUser(user);
     if (password != null) {
       UserUtility.getLdapUtility().setUserPassword(createdUser.getId(), password);
     }
 
-    if (notify && !slaveModeIsOn) {
+    if (notify && writeIsAllowed) {
       notifyUserCreated(createdUser).failOnError();
     }
 
     if (!isHandlingEvent) {
-      RodaCoreFactory.eventsManager.notifyUserCreated(this, createdUser);
+      eventsManager.notifyUserCreated(this, createdUser, password);
     }
 
     return createdUser;
@@ -1841,7 +1844,7 @@ public class ModelService extends ModelObservable {
    */
   public User updateUser(User user, String password, boolean notify, boolean isHandlingEvent)
     throws GenericException, AlreadyExistsException, NotFoundException, AuthorizationDeniedException {
-    boolean slaveModeIsOn = RodaCoreFactory.checkIfSlaveModeIsOn(nodeType);
+    boolean writeIsAllowed = RodaCoreFactory.checkIfWriteIsAllowed(nodeType);
 
     try {
       if (password != null) {
@@ -1849,12 +1852,12 @@ public class ModelService extends ModelObservable {
       }
 
       User updatedUser = UserUtility.getLdapUtility().modifyUser(user);
-      if (notify && !slaveModeIsOn) {
+      if (notify && writeIsAllowed) {
         notifyUserUpdated(updatedUser).failOnError();
       }
 
       if (!isHandlingEvent) {
-        RodaCoreFactory.eventsManager.notifyUserUpdated(this, updatedUser, password);
+        eventsManager.notifyUserUpdated(this, updatedUser, password);
       }
 
       return updatedUser;
@@ -1865,15 +1868,26 @@ public class ModelService extends ModelObservable {
 
   public User deActivateUser(String id, boolean activate, boolean notify)
     throws GenericException, AlreadyExistsException, NotFoundException, AuthorizationDeniedException {
+    return deActivateUser(id, activate, notify, false);
+  }
+
+  public User deActivateUser(String id, boolean activate, boolean notify, boolean isHandlingEvent)
+    throws GenericException, AlreadyExistsException, NotFoundException, AuthorizationDeniedException {
+    boolean writeIsAllowed = RodaCoreFactory.checkIfWriteIsAllowed(nodeType);
     try {
       User user = UserUtility.getLdapUtility().getUser(id);
 
       if (user.isActive() != activate) {
         user.setActive(activate);
         User updatedUser = UserUtility.getLdapUtility().modifyUser(user);
-        if (notify) {
+        if (notify && writeIsAllowed) {
           notifyUserUpdated(updatedUser).failOnError();
         }
+
+        if (!isHandlingEvent) {
+          eventsManager.notifyUserUpdated(this, updatedUser, null);
+        }
+
         return updatedUser;
       } else {
         return user;
@@ -1890,16 +1904,16 @@ public class ModelService extends ModelObservable {
 
   public User updateMyUser(User user, String password, boolean notify, boolean isHandlingEvent)
     throws GenericException, AlreadyExistsException, NotFoundException, AuthorizationDeniedException {
-    boolean slaveModeIsOn = RodaCoreFactory.checkIfSlaveModeIsOn(nodeType);
+    boolean writeIsAllowed = RodaCoreFactory.checkIfWriteIsAllowed(nodeType);
 
     try {
       User updatedUser = UserUtility.getLdapUtility().modifySelfUser(user, password);
-      if (notify && !slaveModeIsOn) {
+      if (notify && writeIsAllowed) {
         notifyUserUpdated(updatedUser).failOnError();
       }
 
       if (!isHandlingEvent) {
-        RodaCoreFactory.eventsManager.notifyUserUpdated(this, updatedUser, password);
+        eventsManager.notifyUserUpdated(this, updatedUser, password);
       }
 
       return updatedUser;
@@ -1910,12 +1924,21 @@ public class ModelService extends ModelObservable {
   }
 
   public void deleteUser(String id, boolean notify) throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    deleteUser(id, notify, false);
+  }
+
+  public void deleteUser(String id, boolean notify, boolean isHandlingEvent)
+    throws GenericException, AuthorizationDeniedException {
+    boolean writeIsAllowed = RodaCoreFactory.checkIfWriteIsAllowed(nodeType);
 
     try {
       UserUtility.getLdapUtility().removeUser(id);
-      if (notify) {
+      if (notify && writeIsAllowed) {
         notifyUserDeleted(id).failOnError();
+      }
+
+      if (!isHandlingEvent) {
+        eventsManager.notifyUserDeleted(this, id);
       }
     } catch (IllegalOperationException e) {
       throw new AuthorizationDeniedException("Illegal operation", e);
@@ -1936,11 +1959,24 @@ public class ModelService extends ModelObservable {
 
   public Group createGroup(Group group, boolean notify)
     throws GenericException, AlreadyExistsException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    return createGroup(group, notify, false);
+  }
+
+  public Group createGroup(Group group, boolean notify, boolean isHandlingEvent)
+    throws GenericException, AlreadyExistsException, AuthorizationDeniedException {
+    boolean writeIsAllowed = RodaCoreFactory.checkIfWriteIsAllowed(nodeType);
+
+    if (!writeIsAllowed && !isHandlingEvent) {
+      RodaCoreFactory.throwExceptionIfWriteIsNotAllowed();
+    }
 
     Group createdGroup = UserUtility.getLdapUtility().addGroup(group);
-    if (notify) {
+    if (notify && writeIsAllowed) {
       notifyGroupCreated(createdGroup).failOnError();
+    }
+
+    if (!isHandlingEvent) {
+      eventsManager.notifyGroupCreated(this, createdGroup);
     }
 
     return createdGroup;
@@ -1948,12 +1984,25 @@ public class ModelService extends ModelObservable {
 
   public Group updateGroup(final Group group, boolean notify)
     throws GenericException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    return updateGroup(group, notify, false);
+  }
+
+  public Group updateGroup(final Group group, boolean notify, boolean isHandlingEvent)
+    throws GenericException, NotFoundException, AuthorizationDeniedException {
+    boolean writeIsAllowed = RodaCoreFactory.checkIfWriteIsAllowed(nodeType);
+
+    if (!writeIsAllowed && !isHandlingEvent) {
+      RodaCoreFactory.throwExceptionIfWriteIsNotAllowed();
+    }
 
     try {
       Group updatedGroup = UserUtility.getLdapUtility().modifyGroup(group);
-      if (notify) {
+      if (notify && writeIsAllowed) {
         notifyGroupUpdated(updatedGroup).failOnError();
+      }
+
+      if (!isHandlingEvent) {
+        eventsManager.notifyGroupUpdated(this, updatedGroup);
       }
 
       return updatedGroup;
@@ -1964,12 +2013,25 @@ public class ModelService extends ModelObservable {
   }
 
   public void deleteGroup(String id, boolean notify) throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    deleteGroup(id, notify, false);
+  }
+
+  public void deleteGroup(String id, boolean notify, boolean isHandlingEvent)
+    throws GenericException, AuthorizationDeniedException {
+    boolean writeIsAllowed = RodaCoreFactory.checkIfWriteIsAllowed(nodeType);
+
+    if (!writeIsAllowed && !isHandlingEvent) {
+      RodaCoreFactory.throwExceptionIfWriteIsNotAllowed();
+    }
 
     try {
       UserUtility.getLdapUtility().removeGroup(id);
-      if (notify) {
+      if (notify && writeIsAllowed) {
         notifyGroupDeleted(id).failOnError();
+      }
+
+      if (!isHandlingEvent) {
+        eventsManager.notifyGroupDeleted(this, id);
       }
     } catch (IllegalOperationException e) {
       throw new AuthorizationDeniedException("Illegal operation", e);
@@ -1996,7 +2058,7 @@ public class ModelService extends ModelObservable {
 
   public User requestPasswordReset(String username, String email, boolean useModel, boolean notify)
     throws IllegalOperationException, NotFoundException, GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     User user = null;
     if (useModel) {
@@ -2013,7 +2075,7 @@ public class ModelService extends ModelObservable {
   public User resetUserPassword(String username, String password, String resetPasswordToken, boolean useModel,
     boolean notify) throws NotFoundException, InvalidTokenException, IllegalOperationException, GenericException,
     AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     User user = null;
     if (useModel) {
@@ -2031,7 +2093,7 @@ public class ModelService extends ModelObservable {
   /************************************************/
   public void createJob(Job job)
     throws GenericException, RequestNotValidException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     createOrUpdateJob(job);
 
@@ -2048,7 +2110,7 @@ public class ModelService extends ModelObservable {
 
   public void createOrUpdateJob(Job job)
     throws RequestNotValidException, GenericException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     // create or update job in storage
     String jobAsJson = JsonUtils.getJsonFromObject(job);
@@ -2076,7 +2138,7 @@ public class ModelService extends ModelObservable {
 
   public void deleteJob(String jobId)
     throws NotFoundException, GenericException, AuthorizationDeniedException, RequestNotValidException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath jobPath = ModelUtils.getJobStoragePath(jobId);
 
@@ -2109,7 +2171,7 @@ public class ModelService extends ModelObservable {
   }
 
   public void createOrUpdateJobReport(Report jobReport, Job job) throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     // create job report in storage
     try {
@@ -2126,7 +2188,7 @@ public class ModelService extends ModelObservable {
 
   public void deleteJobReport(String jobId, String jobReportId)
     throws NotFoundException, GenericException, AuthorizationDeniedException, RequestNotValidException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath jobReportPath = ModelUtils.getJobReportStoragePath(jobId, jobReportId);
 
@@ -2139,7 +2201,7 @@ public class ModelService extends ModelObservable {
 
   public void updateAIPPermissions(AIP aip, String updatedBy)
     throws GenericException, NotFoundException, RequestNotValidException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     aip.setUpdatedBy(updatedBy);
     aip.setUpdatedOn(new Date());
@@ -2149,7 +2211,7 @@ public class ModelService extends ModelObservable {
 
   public void updateDIPPermissions(DIP dip)
     throws GenericException, NotFoundException, RequestNotValidException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     dip.setLastModified(new Date());
     updateDIPMetadata(dip);
@@ -2158,7 +2220,7 @@ public class ModelService extends ModelObservable {
 
   public void deleteTransferredResource(TransferredResource transferredResource)
     throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     FSUtils.deletePathQuietly(Paths.get(transferredResource.getFullPath()));
     notifyTransferredResourceDeleted(transferredResource.getUUID()).failOnError();
@@ -2168,7 +2230,7 @@ public class ModelService extends ModelObservable {
   /************************************************/
 
   public Risk createRisk(Risk risk, boolean commit) throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       if (risk.getId() == null) {
@@ -2192,7 +2254,7 @@ public class ModelService extends ModelObservable {
 
   public Risk updateRisk(Risk risk, Map<String, String> properties, boolean commit, int incidences)
     throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       risk.setUpdatedOn(new Date());
@@ -2215,7 +2277,7 @@ public class ModelService extends ModelObservable {
 
   public void deleteRisk(String riskId, boolean commit)
     throws GenericException, NotFoundException, AuthorizationDeniedException, RequestNotValidException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath riskPath = ModelUtils.getRiskStoragePath(riskId);
     storage.deleteResource(riskPath);
@@ -2246,7 +2308,7 @@ public class ModelService extends ModelObservable {
   public BinaryVersion revertRiskVersion(String riskId, String versionId, Map<String, String> properties,
     boolean commit, int incidences)
     throws RequestNotValidException, GenericException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath binaryPath = ModelUtils.getRiskStoragePath(riskId);
 
@@ -2259,7 +2321,7 @@ public class ModelService extends ModelObservable {
 
   public RiskIncidence createRiskIncidence(RiskIncidence riskIncidence, boolean commit)
     throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       riskIncidence.setId(IdUtils.createUUID());
@@ -2279,7 +2341,7 @@ public class ModelService extends ModelObservable {
 
   public RiskIncidence updateRiskIncidence(RiskIncidence riskIncidence, boolean commit)
     throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       riskIncidence.setRiskId(riskIncidence.getRiskId());
@@ -2296,7 +2358,7 @@ public class ModelService extends ModelObservable {
 
   public void deleteRiskIncidence(String riskIncidenceId, boolean commit)
     throws GenericException, NotFoundException, AuthorizationDeniedException, RequestNotValidException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath riskIncidencePath = ModelUtils.getRiskIncidenceStoragePath(riskIncidenceId);
     storage.deleteResource(riskIncidencePath);
@@ -2324,7 +2386,7 @@ public class ModelService extends ModelObservable {
 
   public Notification createNotification(Notification notification, NotificationProcessor processor)
     throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     notification.setId(IdUtils.createUUID());
     notification.setAcknowledgeToken(IdUtils.createUUID());
@@ -2348,7 +2410,7 @@ public class ModelService extends ModelObservable {
 
   public Notification updateNotification(Notification notification)
     throws GenericException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       String notificationAsJson = JsonUtils.getJsonFromObject(notification);
@@ -2365,7 +2427,7 @@ public class ModelService extends ModelObservable {
 
   public void deleteNotification(String notificationId)
     throws GenericException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       StoragePath notificationPath = ModelUtils.getNotificationStoragePath(notificationId);
@@ -2396,7 +2458,7 @@ public class ModelService extends ModelObservable {
 
   public Notification acknowledgeNotification(String notificationId, String token)
     throws GenericException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     Notification notification = this.retrieveNotification(notificationId);
     String ackToken = token.substring(0, 36);
@@ -2478,7 +2540,7 @@ public class ModelService extends ModelObservable {
   }
 
   public DIP createDIP(DIP dip, boolean notify) throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       Directory directory;
@@ -2512,7 +2574,7 @@ public class ModelService extends ModelObservable {
   }
 
   public DIP updateDIP(DIP dip) throws GenericException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       dip.setLastModified(new Date());
@@ -2527,7 +2589,7 @@ public class ModelService extends ModelObservable {
   }
 
   public void deleteDIP(String dipId) throws GenericException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       // deleting external service if existing
@@ -2569,7 +2631,7 @@ public class ModelService extends ModelObservable {
   public DIPFile createDIPFile(String dipId, List<String> directoryPath, String fileId, long size,
     ContentPayload contentPayload, boolean notify) throws RequestNotValidException, GenericException,
     AlreadyExistsException, AuthorizationDeniedException, NotFoundException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     boolean asReference = false;
 
@@ -2588,7 +2650,7 @@ public class ModelService extends ModelObservable {
 
   public DIPFile createDIPFile(String dipId, List<String> directoryPath, String fileId, String dirName, boolean notify)
     throws RequestNotValidException, GenericException, AlreadyExistsException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath filePath = ModelUtils.getDIPFileStoragePath(dipId, directoryPath, fileId);
     final Directory createdDirectory = storage.createDirectory(DefaultStoragePath.parse(filePath, dirName));
@@ -2604,7 +2666,7 @@ public class ModelService extends ModelObservable {
   public DIPFile updateDIPFile(String dipId, List<String> directoryPath, String oldFileId, String fileId, long size,
     ContentPayload contentPayload, boolean createIfNotExists, boolean notify) throws RequestNotValidException,
     GenericException, NotFoundException, AuthorizationDeniedException, AlreadyExistsException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     DIPFile file;
     boolean asReference = false;
@@ -2625,7 +2687,7 @@ public class ModelService extends ModelObservable {
 
   public void deleteDIPFile(String dipId, List<String> directoryPath, String fileId, boolean notify)
     throws RequestNotValidException, NotFoundException, GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath filePath = ModelUtils.getDIPFileStoragePath(dipId, directoryPath, fileId);
     storage.deleteResource(filePath);
@@ -2669,7 +2731,7 @@ public class ModelService extends ModelObservable {
   public void createSubmission(StorageService submissionStorage, StoragePath submissionStoragePath, String aipId)
     throws AlreadyExistsException, GenericException, RequestNotValidException, NotFoundException,
     AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     storage.copy(submissionStorage, submissionStoragePath, DefaultStoragePath
       .parse(ModelUtils.getSubmissionStoragePath(aipId), DateTimeFormatter.ISO_INSTANT.format(Instant.now())));
@@ -2677,7 +2739,7 @@ public class ModelService extends ModelObservable {
 
   public void createSubmission(Path submissionPath, String aipId) throws AlreadyExistsException, GenericException,
     RequestNotValidException, NotFoundException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath submissionStoragePath = DefaultStoragePath.parse(ModelUtils.getSubmissionStoragePath(aipId),
       DateTimeFormatter.ISO_INSTANT.format(Instant.now()), submissionPath.getFileName().toString());
@@ -2697,7 +2759,7 @@ public class ModelService extends ModelObservable {
   public File createDocumentation(String aipId, String representationId, List<String> directoryPath, String fileId,
     ContentPayload contentPayload) throws RequestNotValidException, GenericException, AlreadyExistsException,
     AuthorizationDeniedException, NotFoundException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     boolean asReference = false;
     StoragePath filePath = ModelUtils.getDocumentationStoragePath(aipId, representationId, directoryPath, fileId);
@@ -2718,7 +2780,7 @@ public class ModelService extends ModelObservable {
   public File createSchema(String aipId, String representationId, List<String> directoryPath, String fileId,
     ContentPayload contentPayload) throws RequestNotValidException, GenericException, AlreadyExistsException,
     AuthorizationDeniedException, NotFoundException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     boolean asReference = false;
     StoragePath filePath = ModelUtils.getSchemaStoragePath(aipId, representationId, directoryPath, fileId);
@@ -3006,7 +3068,7 @@ public class ModelService extends ModelObservable {
 
   public RepresentationInformation createRepresentationInformation(RepresentationInformation ri, String createdBy,
     boolean commit) throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       ri.setId(IdUtils.createUUID());
@@ -3031,7 +3093,7 @@ public class ModelService extends ModelObservable {
 
   public RepresentationInformation updateRepresentationInformation(RepresentationInformation ri, String updatedBy,
     boolean commit) throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       ri.setUpdatedBy(updatedBy);
@@ -3050,7 +3112,7 @@ public class ModelService extends ModelObservable {
 
   public void deleteRepresentationInformation(String representationInformationId, boolean commit)
     throws GenericException, NotFoundException, AuthorizationDeniedException, RequestNotValidException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath representationInformationPath = ModelUtils
       .getRepresentationInformationStoragePath(representationInformationId);
@@ -3078,7 +3140,7 @@ public class ModelService extends ModelObservable {
   /************************************************/
 
   public Format createFormat(Format format, boolean commit) throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       format.setId(IdUtils.createUUID());
@@ -3095,7 +3157,7 @@ public class ModelService extends ModelObservable {
   }
 
   public Format updateFormat(Format format, boolean commit) throws GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     try {
       String formatAsJson = JsonUtils.getJsonFromObject(format);
@@ -3111,7 +3173,7 @@ public class ModelService extends ModelObservable {
 
   public void deleteFormat(String formatId, boolean commit)
     throws GenericException, NotFoundException, AuthorizationDeniedException, RequestNotValidException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     StoragePath formatPath = ModelUtils.getFormatStoragePath(formatId);
     storage.deleteResource(formatPath);

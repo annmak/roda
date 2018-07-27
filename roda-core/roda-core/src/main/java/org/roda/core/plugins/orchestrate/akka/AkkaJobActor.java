@@ -9,6 +9,8 @@ package org.roda.core.plugins.orchestrate.akka;
 
 import java.util.Optional;
 
+import org.roda.core.common.akka.AkkaBaseActor;
+import org.roda.core.common.akka.Messages;
 import org.roda.core.data.exceptions.GenericException;
 import org.roda.core.data.exceptions.RequestNotValidException;
 import org.roda.core.data.v2.IsRODAObject;

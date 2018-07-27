@@ -34,14 +34,16 @@ public final class RodaConstants {
    * RODA Core properties (provided via configuration file)
    */
   public static final String CORE_STORAGE_TYPE = "core.storage.type";
+  public static final String CORE_STORAGE_NEW_SERVICE = "core.storage.new_service";
   public static final String CORE_STORAGE_FEDORA4_URL = "core.storage.fedora4.url";
   public static final String CORE_STORAGE_FEDORA4_USERNAME = "core.storage.fedora4.username";
   public static final String CORE_STORAGE_FEDORA4_PASSWORD = "core.storage.fedora4.password";
   public static final String CORE_SOLR_TYPE = "core.solr.type";
   public static final String CORE_SOLR_HTTP_URL = "core.solr.http.url";
   public static final String CORE_SOLR_CLOUD_URLS = "core.solr.cloud.urls";
+  
+  public static final String CORE_EVENTS_ENABLED = "core.events.enabled";
 
-  public static final String CORE_STORAGE_NEW_SERVICE = "core.storage.new_service";
   public static final String TRASH_CONTAINER = "trash";
 
   public static final String TRANSFERRED_RESOURCES_PROCESSED_FOLDER = "PROCESSED";

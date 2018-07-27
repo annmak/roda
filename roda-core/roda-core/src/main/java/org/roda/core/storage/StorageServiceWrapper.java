@@ -36,7 +36,7 @@ public class StorageServiceWrapper implements StorageService {
   @Override
   public Container createContainer(StoragePath storagePath)
     throws GenericException, AlreadyExistsException, AuthorizationDeniedException, RequestNotValidException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
     return storageService.createContainer(storagePath);
   }
 
@@ -49,7 +49,7 @@ public class StorageServiceWrapper implements StorageService {
   @Override
   public void deleteContainer(StoragePath storagePath)
     throws NotFoundException, GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
     storageService.deleteContainer(storagePath);
   }
 
@@ -68,14 +68,14 @@ public class StorageServiceWrapper implements StorageService {
   @Override
   public Directory createDirectory(StoragePath storagePath)
     throws AlreadyExistsException, GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
     return storageService.createDirectory(storagePath);
   }
 
   @Override
   public Directory createRandomDirectory(StoragePath parentStoragePath) throws RequestNotValidException,
     GenericException, NotFoundException, AlreadyExistsException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
     return storageService.createRandomDirectory(parentStoragePath);
   }
 
@@ -106,14 +106,14 @@ public class StorageServiceWrapper implements StorageService {
   public Binary createBinary(StoragePath storagePath, ContentPayload payload, boolean asReference)
     throws GenericException, AlreadyExistsException, RequestNotValidException, AuthorizationDeniedException,
     NotFoundException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
     return storageService.createBinary(storagePath, payload, asReference);
   }
 
   @Override
   public Binary createRandomBinary(StoragePath parentStoragePath, ContentPayload payload, boolean asReference)
     throws GenericException, RequestNotValidException, AuthorizationDeniedException, NotFoundException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
     return storageService.createRandomBinary(parentStoragePath, payload, asReference);
   }
 
@@ -132,14 +132,14 @@ public class StorageServiceWrapper implements StorageService {
   public Binary updateBinaryContent(StoragePath storagePath, ContentPayload payload, boolean asReference,
     boolean createIfNotExists)
     throws GenericException, NotFoundException, RequestNotValidException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
     return storageService.updateBinaryContent(storagePath, payload, asReference, createIfNotExists);
   }
 
   @Override
   public void deleteResource(StoragePath storagePath)
     throws NotFoundException, GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
     storageService.deleteResource(storagePath);
   }
 
@@ -153,7 +153,7 @@ public class StorageServiceWrapper implements StorageService {
   public void copy(StorageService fromService, StoragePath fromStoragePath, StoragePath toStoragePath)
     throws AlreadyExistsException, GenericException, RequestNotValidException, NotFoundException,
     AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
     storageService.copy(fromService, fromStoragePath, toStoragePath);
   }
 
@@ -161,7 +161,7 @@ public class StorageServiceWrapper implements StorageService {
   public void move(StorageService fromService, StoragePath fromStoragePath, StoragePath toStoragePath)
     throws AlreadyExistsException, GenericException, RequestNotValidException, NotFoundException,
     AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
     storageService.move(fromService, fromStoragePath, toStoragePath);
   }
 
@@ -185,21 +185,21 @@ public class StorageServiceWrapper implements StorageService {
   @Override
   public BinaryVersion createBinaryVersion(StoragePath storagePath, Map<String, String> properties)
     throws RequestNotValidException, NotFoundException, GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
     return storageService.createBinaryVersion(storagePath, properties);
   }
 
   @Override
   public void revertBinaryVersion(StoragePath storagePath, String version)
     throws NotFoundException, RequestNotValidException, GenericException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
     storageService.revertBinaryVersion(storagePath, version);
   }
 
   @Override
   public void deleteBinaryVersion(StoragePath storagePath, String version)
     throws NotFoundException, GenericException, RequestNotValidException, AuthorizationDeniedException {
-    RodaCoreFactory.checkIfSlaveModeIsOnAndIfTrueThrowException(nodeType);
+    RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
     storageService.deleteBinaryVersion(storagePath, version);
   }
 

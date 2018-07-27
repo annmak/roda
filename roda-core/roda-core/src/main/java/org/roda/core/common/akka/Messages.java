@@ -5,7 +5,7 @@
  *
  * https://github.com/keeps/roda
  */
-package org.roda.core.plugins.orchestrate.akka;
+package org.roda.core.common.akka;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -17,6 +17,7 @@ import org.roda.core.data.v2.IsRODAObject;
 import org.roda.core.data.v2.LiteOptionalWithCause;
 import org.roda.core.data.v2.SerializableOptional;
 import org.roda.core.data.v2.jobs.Job.JOB_STATE;
+import org.roda.core.data.v2.user.Group;
 import org.roda.core.data.v2.user.User;
 import org.roda.core.plugins.Plugin;
 import org.roda.core.plugins.orchestrate.JobPluginInfo;
@@ -576,7 +577,7 @@ public class Messages {
     }
   }
 
-  public static class EventUserCreated extends AbstractEventMessage {
+  public static final class EventUserCreated extends AbstractEventMessage {
     private static final long serialVersionUID = -2517455273875624115L;
 
     private User user;
@@ -602,14 +603,26 @@ public class Messages {
     }
   }
 
-  public static final class EventUserUpdated extends EventUserCreated {
+  public static final class EventUserUpdated extends AbstractEventMessage {
     private static final long serialVersionUID = -2517455273875624115L;
 
+    private User user;
+    private String password;
     private boolean myUser;
 
     public EventUserUpdated(User user, String password, boolean myUser, String senderId) {
-      super(user, password, senderId);
+      super(senderId);
+      this.user = user;
+      this.password = password;
       this.myUser = myUser;
+    }
+
+    public User getUser() {
+      return user;
+    }
+
+    public String getPassword() {
+      return password;
     }
 
     public boolean isMyUser() {
@@ -618,8 +631,88 @@ public class Messages {
 
     @Override
     public String toString() {
-      return "EventUserUpdated [myUser=" + myUser + ", getUser()=" + getUser() + ", getSenderId()=" + getSenderId()
-        + "]";
+      return "EventUserUpdated [user=" + user + ", password=" + password + ", myUser=" + myUser + ", getSenderId()="
+        + getSenderId() + "]";
+    }
+  }
+
+  public static final class EventUserDeleted extends AbstractEventMessage {
+    private static final long serialVersionUID = -7862917122791858311L;
+
+    private String id;
+
+    public EventUserDeleted(String id, String senderId) {
+      super(senderId);
+      this.id = id;
+    }
+
+    public String getId() {
+      return id;
+    }
+
+    @Override
+    public String toString() {
+      return "EventUserDeleted [id=" + id + ", getSenderId()=" + getSenderId() + "]";
+    }
+  }
+
+  public static final class EventGroupCreated extends AbstractEventMessage {
+    private static final long serialVersionUID = -51380983717488740L;
+
+    private Group group;
+
+    public EventGroupCreated(Group group, String senderId) {
+      super(senderId);
+      this.group = group;
+    }
+
+    public Group getGroup() {
+      return group;
+    }
+
+    @Override
+    public String toString() {
+      return "EventGroupCreated [group=" + group + ", getSenderId()=" + getSenderId() + "]";
+    }
+  }
+
+  public static final class EventGroupUpdated extends AbstractEventMessage {
+    private static final long serialVersionUID = -51380983717488740L;
+
+    private Group group;
+
+    public EventGroupUpdated(Group group, String senderId) {
+      super(senderId);
+      this.group = group;
+    }
+
+    public Group getGroup() {
+      return group;
+    }
+
+    @Override
+    public String toString() {
+      return "EventGroupUpdated [group=" + group + ", getSenderId()=" + getSenderId() + "]";
+    }
+  }
+
+  public static final class EventGroupDeleted extends AbstractEventMessage {
+    private static final long serialVersionUID = -7862917122791858311L;
+
+    private String id;
+
+    public EventGroupDeleted(String id, String senderId) {
+      super(senderId);
+      this.id = id;
+    }
+
+    public String getId() {
+      return id;
+    }
+
+    @Override
+    public String toString() {
+      return "EventGroupDeleted [id=" + id + ", getSenderId()=" + getSenderId() + "]";
     }
   }
 
