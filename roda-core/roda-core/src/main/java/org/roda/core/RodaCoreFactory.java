@@ -12,6 +12,7 @@ import java.io.Console;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
@@ -116,7 +117,6 @@ import org.roda.core.data.v2.user.User;
 import org.roda.core.events.EventsHandler;
 import org.roda.core.events.EventsManager;
 import org.roda.core.events.EventsNotifier;
-import org.roda.core.events.akka.AkkaEventsHandlerAndNotifier;
 import org.roda.core.index.IndexService;
 import org.roda.core.index.schema.SolrBootstrapUtils;
 import org.roda.core.index.schema.SolrCollectionRegistry;
@@ -321,7 +321,7 @@ public class RodaCoreFactory {
 
   public static void instantiate() {
     NodeType nodeType = NodeType
-      .valueOf(getSystemProperty(RodaConstants.CORE_NODE_TYPE, RodaConstants.DEFAULT_NODE_TYPE.name()));
+      .valueOf(getProperty(RodaConstants.CORE_NODE_TYPE, RodaConstants.DEFAULT_NODE_TYPE.name()));
 
     if (nodeType == NodeType.MASTER) {
       instantiate(NodeType.MASTER);
@@ -497,24 +497,76 @@ public class RodaCoreFactory {
   }
 
   /**
-   * Try to get property from 1) system property (passed in command-line via
-   * -D); 2) environment variable (upper case, replace '.' by '_' and if
-   * property does not start by "RODA_" after replacements, it will be
-   * appended); 3) return default value
+   * Try to get property from 1) system property (passed in command-line via -D;
+   * if property does not start by "roda.", it will be prepended); 2)
+   * environment variable (upper case, replace '.' by '_' and if property does
+   * not start by "RODA_" after replacements, it will be prepended); 3) RODA
+   * configuration files (with original property value, ensuring that it does
+   * not start by "roda."); 4) return default value
+   * 
+   * <p>
+   * Example 1: for property = 'roda.node.type' this method will try to find the
+   * following:
+   * <ul>
+   * <li>system property: roda.node.type</li>
+   * <li>environment variable: RODA_NODE_TYPE</li>
+   * <li>configuration files: node.type</li>
+   * </p>
+   * <p>
+   * Example 2: for property = 'node.type' this method will try to find the
+   * following:
+   * <ul>
+   * <li>system property: roda.node.type</li>
+   * <li>environment variable: RODA_NODE_TYPE</li>
+   * <li>configuration files: node.type</li>
+   * </p>
    */
   private static String getProperty(String property, String defaultValue) {
-    String ret = System.getProperty(property);
+    String sysProperty = property;
+    if (!sysProperty.startsWith("roda.")) {
+      sysProperty = "roda." + sysProperty;
+    }
+    String ret = System.getProperty(sysProperty);
     if (ret == null) {
-      String envProperty = property.toUpperCase().replace('.', '_');
-      if (!envProperty.startsWith("RODA_")) {
-        envProperty = "RODA_" + envProperty;
-      }
+      String envProperty = sysProperty.toUpperCase().replace('.', '_');
       ret = System.getenv(envProperty);
-      if (ret == null) {
+      if (ret == null && getRodaConfiguration() != null) {
+        String confProperty = property.replaceFirst("^roda.", "");
+        ret = getRodaConfiguration().getString(confProperty, defaultValue);
+      } else {
         ret = defaultValue;
       }
     }
     return ret;
+  }
+
+  /**
+   * Try to get property from 1) system property (passed in command-line via -D;
+   * if property does not start by "roda.", it will be prepended); 2)
+   * environment variable (upper case, replace '.' by '_' and if property does
+   * not start by "RODA_" after replacements, it will be prepended); 3) RODA
+   * configuration files (with original property value, ensuring that it does
+   * not start by "roda."); 4) return default value
+   * 
+   * <p>
+   * Example 1: for property = 'roda.node.type' this method will try to find the
+   * following:
+   * <ul>
+   * <li>system property: roda.node.type</li>
+   * <li>environment variable: RODA_NODE_TYPE</li>
+   * <li>configuration files: node.type</li>
+   * </p>
+   * <p>
+   * Example 2: for property = 'node.type' this method will try to find the
+   * following:
+   * <ul>
+   * <li>system property: roda.node.type</li>
+   * <li>environment variable: RODA_NODE_TYPE</li>
+   * <li>configuration files: node.type</li>
+   * </p>
+   */
+  private static boolean getProperty(String property, boolean defaultValue) {
+    return Boolean.parseBoolean(getProperty(property, Boolean.toString(defaultValue)));
   }
 
   public static boolean isConfigSymbolicLinksAllowed() {
@@ -815,18 +867,40 @@ public class RodaCoreFactory {
     }
   }
 
-  private static void instantiateEventsManager() {
+  private static void instantiateEventsManager() throws ReflectiveOperationException {
     EventsNotifier eventsNotifier = null;
     EventsHandler eventsHandler = null;
 
-    boolean enabled = getRodaConfiguration().getBoolean(RodaConstants.CORE_EVENTS_ENABLED, false);
+    boolean enabled = getProperty(RodaConstants.CORE_EVENTS_ENABLED, false);
     if (enabled) {
-      AkkaEventsHandlerAndNotifier akkaEventsHandlerAndNotifier = new AkkaEventsHandlerAndNotifier();
-      eventsNotifier = akkaEventsHandlerAndNotifier;
-      eventsHandler = akkaEventsHandlerAndNotifier;
+      boolean notifierAndHandlerAreTheSame = getProperty(RodaConstants.CORE_EVENTS_NOTIFIER_AND_HANDLER_ARE_THE_SAME,
+        false);
+      String notifierClass = getProperty(RodaConstants.CORE_EVENTS_NOTIFIER_CLASS, "");
+      eventsNotifier = instantiateEventsProcessorClass(EventsNotifier.class, notifierClass);
+      if (notifierAndHandlerAreTheSame) {
+        eventsHandler = (EventsHandler) eventsNotifier;
+      } else {
+        String handlerClass = getProperty(RodaConstants.CORE_EVENTS_HANDLER_CLASS, "");
+        eventsHandler = instantiateEventsProcessorClass(EventsHandler.class, handlerClass);
+      }
     }
 
-    eventsManager = new EventsManager(eventsNotifier, eventsHandler, nodeType, model, enabled);
+    eventsManager = new EventsManager(eventsNotifier, eventsHandler, nodeType, enabled);
+  }
+
+  private static <T extends Serializable> T instantiateEventsProcessorClass(Class<T> clazz, String eventsProcessorClass)
+    throws ReflectiveOperationException {
+    try {
+      LOGGER.debug("Going to instantiate events related class '{}'", eventsProcessorClass);
+      Class<?> eventsProcessor = Class.forName(eventsProcessorClass);
+      Constructor<?> constructor = eventsProcessor.getConstructor();
+
+      return (T) constructor.newInstance();
+    } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InstantiationException
+      | InvocationTargetException e) {
+      LOGGER.warn("Error instantiating events related class '{}'", eventsProcessorClass, e);
+      throw e;
+    }
   }
 
   private static void instantiateStorageAndModel() throws GenericException {
@@ -2172,7 +2246,7 @@ public class RodaCoreFactory {
     throws InterruptedException, GenericException, RequestNotValidException {
     final List<String> args = Arrays.asList(argsArray);
     NodeType nodeType = NodeType
-      .valueOf(getSystemProperty(RodaConstants.CORE_NODE_TYPE, RodaConstants.DEFAULT_NODE_TYPE.name()));
+      .valueOf(getProperty(RodaConstants.CORE_NODE_TYPE, RodaConstants.DEFAULT_NODE_TYPE.name()));
 
     preInstantiateSteps(args);
     instantiate();

@@ -11,15 +11,12 @@ public class EventsManager implements EventsNotifier {
   private EventsNotifier eventsNotifier;
   private EventsHandler eventsHandler;
   private NodeType nodeType;
-  private ModelService model;
   private boolean enabled;
 
-  public EventsManager(EventsNotifier eventsNotifier, EventsHandler eventsHandler, NodeType nodeType,
-    ModelService model, boolean enabled) {
+  public EventsManager(EventsNotifier eventsNotifier, EventsHandler eventsHandler, NodeType nodeType, boolean enabled) {
     this.eventsNotifier = eventsNotifier;
     this.eventsHandler = eventsHandler;
     this.nodeType = nodeType;
-    this.model = model;
     this.enabled = enabled;
   }
 

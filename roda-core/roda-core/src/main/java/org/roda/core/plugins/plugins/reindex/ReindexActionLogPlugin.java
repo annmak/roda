@@ -148,7 +148,7 @@ public class ReindexActionLogPlugin extends AbstractPlugin<Void> {
 
       if (logEntry.isPresent()) {
         LogEntry entry = logEntry.get();
-        // 20180730 hsilva: this is needed for backwards compatability (as
+        // 20180730 hsilva: this is needed for backwards compatibility (as
         // before uuid was equal to id)
         if (entry.getUUID() == null) {
           entry.setUUID(entry.getId());
