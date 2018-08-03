@@ -62,6 +62,9 @@ public class AkkaEventsHandler extends AkkaBaseActor {
           unhandled(msg);
         }
       }
+    } else {
+      // FIXME 20180807 hsilva: remove after tests
+      LOGGER.info("Received message {}", msg);
     }
   }
 

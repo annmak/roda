@@ -213,7 +213,7 @@ public final class JobsHelper {
   public static <T extends IsRODAObject> void updateJobStateAsync(Plugin<T> plugin, JOB_STATE state,
     Optional<String> stateDetails) {
     RodaCoreFactory.getPluginOrchestrator().updateJobAsync(plugin,
-      new Messages.JobStateUpdated(plugin, state, stateDetails));
+      Messages.newJobStateUpdated(plugin, state, stateDetails));
   }
 
   public static <T extends IsRODAObject> void updateJobStateAsync(Plugin<T> plugin, JOB_STATE state,

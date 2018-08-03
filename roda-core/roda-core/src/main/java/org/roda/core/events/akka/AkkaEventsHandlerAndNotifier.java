@@ -1,17 +1,16 @@
 package org.roda.core.events.akka;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.commons.io.IOUtils;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooKeeper;
 import org.roda.core.RodaCoreFactory;
-import org.roda.core.common.akka.Messages.EventGroupCreated;
-import org.roda.core.common.akka.Messages.EventGroupDeleted;
-import org.roda.core.common.akka.Messages.EventGroupUpdated;
-import org.roda.core.common.akka.Messages.EventUserCreated;
-import org.roda.core.common.akka.Messages.EventUserDeleted;
-import org.roda.core.common.akka.Messages.EventUserUpdated;
+import org.roda.core.common.akka.AkkaUtils;
+import org.roda.core.common.akka.Messages;
 import org.roda.core.data.common.RodaConstants;
 import org.roda.core.data.v2.user.Group;
 import org.roda.core.data.v2.user.User;
@@ -23,12 +22,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Address;
 import akka.actor.Props;
 import akka.actor.Terminated;
+import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.dispatch.OnComplete;
@@ -40,6 +40,7 @@ public class AkkaEventsHandlerAndNotifier extends AbstractEventsHandler implemen
   private static final long serialVersionUID = 919188071375009042L;
   private static final Logger LOGGER = LoggerFactory.getLogger(AkkaEventsHandlerAndNotifier.class);
 
+  private static final String EVENTS_SYSTEM = "EventsSystem";
   protected static final String TOPIC_NAME = "events";
 
   private ActorSystem eventsSystem;
@@ -49,56 +50,91 @@ public class AkkaEventsHandlerAndNotifier extends AbstractEventsHandler implemen
   private boolean shuttingDown = false;
 
   public AkkaEventsHandlerAndNotifier() {
-    Config akkaConfig = getAkkaConfiguration();
-    eventsSystem = ActorSystem.create("EventsSystem", akkaConfig);
+    Config akkaConfig = AkkaUtils.getAkkaConfiguration("events.conf");
+    eventsSystem = ActorSystem.create(EVENTS_SYSTEM, akkaConfig);
+    List<Address> seedNodesAddresses = getSeedNodesAddresses();
+    if (seedNodesAddresses.isEmpty()) {
+      LOGGER.warn(
+        "Found no seed nodes addresses (in any source, i.e., 1) system properties; 2) env. variables; 3) properties files)");
+    }
+    Cluster.get(eventsSystem).joinSeedNodes(seedNodesAddresses);
     eventsNotifier = DistributedPubSub.get(eventsSystem).mediator();
     instanceSenderId = eventsNotifier.toString();
     eventsHandler = eventsSystem
       .actorOf(Props.create(AkkaEventsHandler.class, (EventsHandler) this, eventsNotifier.toString()), "eventsHandler");
+
   }
 
-  private Config getAkkaConfiguration() {
-    Config akkaConfig = null;
+  private List<Address> getSeedNodesAddresses() {
+    List<Address> seedNodes = new ArrayList<Address>();
 
-    try (InputStream originStream = RodaCoreFactory
-      .getConfigurationFileAsStream(RodaConstants.CORE_ORCHESTRATOR_FOLDER + "/events.conf")) {
-      String configAsString = IOUtils.toString(originStream, RodaConstants.DEFAULT_ENCODING);
-      akkaConfig = ConfigFactory.parseString(configAsString);
-    } catch (IOException e) {
-      LOGGER.error("Could not load Akka configuration", e);
+    if (RodaCoreFactory.getProperty("core.events.akka.seeds_via_list", true)) {
+      int i = 1;
+      while (i != -1) {
+        String seed = RodaCoreFactory.getProperty("core.events.akka.seeds." + i, null);
+        if (seed != null) {
+          String[] seedParts = seed.split(":");
+          seedNodes.add(new Address("akka.tcp", EVENTS_SYSTEM, seedParts[0], Integer.parseInt(seedParts[1])));
+          i++;
+        } else {
+          i = -1;
+        }
+      }
+    } else {
+      ZooKeeper zkClient;
+      try {
+        String connectString = RodaCoreFactory.getProperty(RodaConstants.CORE_SOLR_CLOUD_URLS, "localhost:2181");
+        String zkSeedsNode = RodaCoreFactory.getProperty("core.events.akka.zk.seeds_path",
+          "/akka/cluster/events/seeds");
+        zkClient = new ZooKeeper(connectString, 2000, event -> {
+          // do nothing and carry on
+        });
+
+        zkClient.getChildren(zkSeedsNode, false).forEach(seed -> {
+          try {
+            String node = new String(zkClient.getData(zkSeedsNode + "/" + seed, null, null),
+              RodaConstants.DEFAULT_ENCODING);
+            String[] nodeParts = node.split(":");
+            seedNodes.add(new Address("akka.tcp", EVENTS_SYSTEM, nodeParts[0], Integer.parseInt(nodeParts[1])));
+          } catch (KeeperException | InterruptedException | UnsupportedEncodingException e) {
+            // do nothing and carry on
+          }
+        });
+      } catch (IOException | KeeperException | InterruptedException e) {
+        // do nothing and carry on
+      }
     }
 
-    return akkaConfig;
+    return seedNodes;
   }
 
   @Override
   public void notifyUserCreated(ModelService model, User user, String password) {
     LOGGER.debug("notifyUserCreated '{}' with password '{}'", user, password != null ? "******" : "NULL");
     eventsNotifier.tell(
-      new DistributedPubSubMediator.Publish(TOPIC_NAME, new EventUserCreated(user, password, instanceSenderId)),
+      new DistributedPubSubMediator.Publish(TOPIC_NAME, Messages.newEventUserCreated(user, password, instanceSenderId)),
       ActorRef.noSender());
   }
 
   @Override
   public void notifyUserUpdated(ModelService model, User user, String password) {
     LOGGER.debug("notifyUserUpdated '{}' with password '{}'", user, password != null ? "******" : "NULL");
-    eventsNotifier.tell(
-      new DistributedPubSubMediator.Publish(TOPIC_NAME, new EventUserUpdated(user, password, false, instanceSenderId)),
-      ActorRef.noSender());
+    eventsNotifier.tell(new DistributedPubSubMediator.Publish(TOPIC_NAME,
+      Messages.newEventUserUpdated(user, password, false, instanceSenderId)), ActorRef.noSender());
   }
 
   @Override
   public void notifyMyUserUpdated(ModelService model, User user, String password) {
     LOGGER.debug("notifyMyUserUpdated '{}' with password '{}'", user, password != null ? "******" : "NULL");
-    eventsNotifier.tell(
-      new DistributedPubSubMediator.Publish(TOPIC_NAME, new EventUserUpdated(user, password, true, instanceSenderId)),
-      ActorRef.noSender());
+    eventsNotifier.tell(new DistributedPubSubMediator.Publish(TOPIC_NAME,
+      Messages.newEventUserUpdated(user, password, true, instanceSenderId)), ActorRef.noSender());
   }
 
   @Override
   public void notifyUserDeleted(ModelService model, String id) {
     LOGGER.debug("notifyUserDeleted '{}'", id);
-    eventsNotifier.tell(new DistributedPubSubMediator.Publish(TOPIC_NAME, new EventUserDeleted(id, instanceSenderId)),
+    eventsNotifier.tell(
+      new DistributedPubSubMediator.Publish(TOPIC_NAME, Messages.newEventUserDeleted(id, instanceSenderId)),
       ActorRef.noSender());
   }
 
@@ -106,7 +142,7 @@ public class AkkaEventsHandlerAndNotifier extends AbstractEventsHandler implemen
   public void notifyGroupCreated(ModelService model, Group group) {
     LOGGER.debug("notifyGroupCreated '{}'", group);
     eventsNotifier.tell(
-      new DistributedPubSubMediator.Publish(TOPIC_NAME, new EventGroupCreated(group, instanceSenderId)),
+      new DistributedPubSubMediator.Publish(TOPIC_NAME, Messages.newEventGroupCreated(group, instanceSenderId)),
       ActorRef.noSender());
   }
 
@@ -114,14 +150,15 @@ public class AkkaEventsHandlerAndNotifier extends AbstractEventsHandler implemen
   public void notifyGroupUpdated(ModelService model, Group group) {
     LOGGER.debug("notifyGroupUpdated '{}'", group);
     eventsNotifier.tell(
-      new DistributedPubSubMediator.Publish(TOPIC_NAME, new EventGroupUpdated(group, instanceSenderId)),
+      new DistributedPubSubMediator.Publish(TOPIC_NAME, Messages.newEventGroupUpdated(group, instanceSenderId)),
       ActorRef.noSender());
   }
 
   @Override
   public void notifyGroupDeleted(ModelService model, String id) {
     LOGGER.debug("notifyGroupDeleted '{}'", id);
-    eventsNotifier.tell(new DistributedPubSubMediator.Publish(TOPIC_NAME, new EventGroupDeleted(id, instanceSenderId)),
+    eventsNotifier.tell(
+      new DistributedPubSubMediator.Publish(TOPIC_NAME, Messages.newEventGroupDeleted(id, instanceSenderId)),
       ActorRef.noSender());
   }
 

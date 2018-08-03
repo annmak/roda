@@ -1174,7 +1174,7 @@ public final class PluginHelper {
       SelectedItems<?> sourceObjects = job.getSourceObjects();
       if (sourceObjects instanceof SelectedItemsList) {
         RodaCoreFactory.getPluginOrchestrator().updateJobAsync(plugin,
-          new Messages.JobSourceObjectsUpdated(oldToNewTransferredResourceIds));
+          Messages.newJobSourceObjectsUpdated(oldToNewTransferredResourceIds));
       }
     } catch (NotFoundException | GenericException | RequestNotValidException e) {
       LOGGER.error("Error retrieving Job", e);

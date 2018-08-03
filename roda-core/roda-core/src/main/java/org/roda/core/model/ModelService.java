@@ -1715,6 +1715,11 @@ public class ModelService extends ModelObservable {
     GenericException, AlreadyExistsException, RequestNotValidException, NotFoundException {
     RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
+    StoragePath logPath = ModelUtils.getLogStoragePath(filename);
+    if (storage.exists(logPath)) {
+      throw new AlreadyExistsException("Binary already exists: " + logPath);
+    }
+
     Path tempDir = null;
     try {
       tempDir = Files.createTempDirectory(new Date().getTime() + "");
@@ -1729,7 +1734,6 @@ public class ModelService extends ModelObservable {
       }
 
       // store
-      StoragePath logPath = ModelUtils.getLogStoragePath(filename);
       storage.createBinary(logPath, new FSPathContentPayload(path), false);
     } catch (IOException e) {
       throw new GenericException(e);

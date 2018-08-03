@@ -20,9 +20,13 @@ public final class RodaConstants {
    */
   public static final String CORE_NODE_TYPE = "roda.node.type";
   public static final String CORE_NODE_INSTANCE_ID = "roda.node.instanceId";
+  @Deprecated
   public static final String CORE_CLUSTER_HOSTNAME = "roda.cluster.hostname";
+  @Deprecated
   public static final String CORE_CLUSTER_PORT = "roda.cluster.port";
+  @Deprecated
   public static final String CORE_NODE_HOSTNAME = "roda.node.hostname";
+  @Deprecated
   public static final String CORE_NODE_PORT = "roda.node.port";
   public static final String INSTALL_FOLDER_SYSTEM_PROPERTY = "roda.home";
 

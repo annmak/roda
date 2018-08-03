@@ -660,7 +660,6 @@ public class IndexService {
   public <T extends IsIndexed> void execute(Class<T> classToRetrieve, Filter filter, List<String> fieldsToReturn,
     IndexRunnable<T> indexRunnable, Consumer<RODAException> exceptionHandler)
     throws GenericException, RequestNotValidException, AuthorizationDeniedException {
-    // FIXME 20180720 hsilva: see if this is necessary
     RodaCoreFactory.checkIfWriteIsAllowedAndIfFalseThrowException(nodeType);
 
     SolrUtils.execute(getSolrClient(), classToRetrieve, filter, fieldsToReturn, indexRunnable, exceptionHandler);

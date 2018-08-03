@@ -30,11 +30,13 @@ import akka.actor.ActorRef;
 public class Messages {
   private static final Logger LOGGER = LoggerFactory.getLogger(Messages.class);
 
+  private static final Messages INSTANCE = new Messages();
+
   private Messages() {
     // do nothing
   }
 
-  public abstract static class AbstractMessage implements Serializable {
+  public abstract class AbstractMessage implements Serializable {
     private static final long serialVersionUID = 1898368418865765060L;
     private String uuid;
     private long creationTime;
@@ -66,7 +68,11 @@ public class Messages {
   }
 
   /*-------------------- JOB MANAGER RELATED STATIC CLASSES --------------------*/
-  public static final class JobsManagerTick extends AbstractMessage {
+  public static JobsManagerTick newJobsManagerTick() {
+    return INSTANCE.new JobsManagerTick();
+  }
+
+  public final class JobsManagerTick extends AbstractMessage {
     private static final long serialVersionUID = -2514581679498648676L;
 
     public JobsManagerTick() {
@@ -79,7 +85,11 @@ public class Messages {
     }
   }
 
-  public static final class JobsManagerJobEnded extends AbstractMessage {
+  public static JobsManagerJobEnded newJobsManagerJobEnded(String jobId, String plugin) {
+    return INSTANCE.new JobsManagerJobEnded(jobId, plugin);
+  }
+
+  public final class JobsManagerJobEnded extends AbstractMessage {
     private static final long serialVersionUID = -2514581679498648676L;
 
     private String jobId;
@@ -105,7 +115,12 @@ public class Messages {
     }
   }
 
-  public static final class JobsManagerAcquireLock extends AbstractMessage {
+  public static JobsManagerAcquireLock newJobsManagerAcquireLock(List<String> lites, boolean waitForLockIfLocked,
+    int secondsToExpire, String requestUuid) {
+    return INSTANCE.new JobsManagerAcquireLock(lites, waitForLockIfLocked, secondsToExpire, requestUuid);
+  }
+
+  public final class JobsManagerAcquireLock extends AbstractMessage {
     private static final long serialVersionUID = 4924002662559968741L;
 
     private List<String> lites;
@@ -156,7 +171,11 @@ public class Messages {
 
   }
 
-  public static final class JobsManagerReleaseLock extends AbstractMessage {
+  public static JobsManagerReleaseLock newJobsManagerReleaseLock(List<String> lites, String requestUuid) {
+    return INSTANCE.new JobsManagerReleaseLock(lites, requestUuid);
+  }
+
+  public final class JobsManagerReleaseLock extends AbstractMessage {
     private static final long serialVersionUID = 4924002662559968741L;
 
     private List<String> lites;
@@ -183,7 +202,11 @@ public class Messages {
 
   }
 
-  public static final class JobsManagerReplyToAcquireLock extends AbstractMessage {
+  public static JobsManagerReplyToAcquireLock newJobsManagerReplyToAcquireLock(List<String> lites) {
+    return INSTANCE.new JobsManagerReplyToAcquireLock(lites);
+  }
+
+  public final class JobsManagerReplyToAcquireLock extends AbstractMessage {
     private static final long serialVersionUID = 4924002662559968741L;
 
     private List<String> lites;
@@ -203,7 +226,11 @@ public class Messages {
     }
   }
 
-  public static final class JobsManagerReplyToReleaseLock extends AbstractMessage {
+  public static JobsManagerReplyToReleaseLock newJobsManagerReplyToReleaseLock(List<String> lites) {
+    return INSTANCE.new JobsManagerReplyToReleaseLock(lites);
+  }
+
+  public final class JobsManagerReplyToReleaseLock extends AbstractMessage {
     private static final long serialVersionUID = 4924002662559968741L;
 
     private List<String> lites;
@@ -223,7 +250,15 @@ public class Messages {
     }
   }
 
-  public static final class JobsManagerNotLockableAtTheTime extends AbstractMessage {
+  public static JobsManagerNotLockableAtTheTime newJobsManagerNotLockableAtTheTime() {
+    return INSTANCE.new JobsManagerNotLockableAtTheTime();
+  }
+
+  public static JobsManagerNotLockableAtTheTime newJobsManagerNotLockableAtTheTime(String msg) {
+    return INSTANCE.new JobsManagerNotLockableAtTheTime(msg);
+  }
+
+  public final class JobsManagerNotLockableAtTheTime extends AbstractMessage {
     private static final long serialVersionUID = -2313831907910175641L;
 
     private String msg;
@@ -246,7 +281,11 @@ public class Messages {
   }
 
   /*-------------------- JOB STATE RELATED STATIC CLASSES --------------------*/
-  public static final class JobInfoUpdated extends AbstractMessage {
+  public static JobInfoUpdated newJobInfoUpdated(Plugin<?> plugin, JobPluginInfo jobPluginInfo) {
+    return INSTANCE.new JobInfoUpdated(plugin, jobPluginInfo);
+  }
+
+  public final class JobInfoUpdated extends AbstractMessage {
     private static final long serialVersionUID = -6918015956027259760L;
 
     private Plugin<?> plugin;
@@ -272,7 +311,7 @@ public class Messages {
     }
   }
 
-  public static abstract class JobPartialUpdate extends AbstractMessage {
+  public abstract class JobPartialUpdate extends AbstractMessage {
     private static final long serialVersionUID = 4722216970884172260L;
 
     @Override
@@ -281,7 +320,11 @@ public class Messages {
     }
   }
 
-  public static class JobSourceObjectsUpdated extends JobPartialUpdate {
+  public static JobSourceObjectsUpdated newJobSourceObjectsUpdated(Map<String, String> oldToNewIds) {
+    return INSTANCE.new JobSourceObjectsUpdated(oldToNewIds);
+  }
+
+  public class JobSourceObjectsUpdated extends JobPartialUpdate {
     private static final long serialVersionUID = -8395563279621159731L;
 
     private Map<String, String> oldToNewIds;
@@ -301,7 +344,19 @@ public class Messages {
     }
   }
 
-  public static class JobStateDetailsUpdated extends JobPartialUpdate {
+  public static JobStateUpdated newJobStateUpdated(Plugin<?> plugin, JOB_STATE state) {
+    return INSTANCE.new JobStateUpdated(plugin, state);
+  }
+
+  public static JobStateUpdated newJobStateUpdated(Plugin<?> plugin, JOB_STATE state, Optional<String> stateDatails) {
+    return INSTANCE.new JobStateUpdated(plugin, state, stateDatails);
+  }
+
+  public static JobStateUpdated newJobStateUpdated(Plugin<?> plugin, JOB_STATE state, Throwable throwable) {
+    return INSTANCE.new JobStateUpdated(plugin, state, throwable);
+  }
+
+  public final class JobStateUpdated extends JobPartialUpdate {
     private static final long serialVersionUID = 1946036502369851214L;
 
     private Plugin<?> plugin;
@@ -360,7 +415,11 @@ public class Messages {
     }
   }
 
-  public static final class JobInitEnded extends AbstractMessage {
+  public static JobInitEnded newJobInitEnded() {
+    return INSTANCE.new JobInitEnded();
+  }
+
+  public final class JobInitEnded extends AbstractMessage {
     private static final long serialVersionUID = 5040958276243865900L;
 
     public JobInitEnded() {
@@ -373,7 +432,11 @@ public class Messages {
     }
   }
 
-  public static class JobCleanup extends AbstractMessage {
+  public static JobCleanup newJobCleanup() {
+    return INSTANCE.new JobCleanup();
+  }
+
+  public class JobCleanup extends AbstractMessage {
     private static final long serialVersionUID = -5175825019027462407L;
 
     public JobCleanup() {
@@ -386,7 +449,11 @@ public class Messages {
     }
   }
 
-  public static class JobStop extends AbstractMessage {
+  public static JobStop newJobStop() {
+    return INSTANCE.new JobStop();
+  }
+
+  public class JobStop extends AbstractMessage {
     private static final long serialVersionUID = -8806029242967727412L;
 
     public JobStop() {
@@ -401,7 +468,7 @@ public class Messages {
 
   /*-------------------- PLUGIN STATE TRANSITIONS RELATED STATIC CLASSES --------------------*/
 
-  private static class PluginMethodIsReady<T extends IsRODAObject> extends AbstractMessage {
+  private class PluginMethodIsReady<T extends IsRODAObject> extends AbstractMessage {
     private static final long serialVersionUID = -5214600055070295410L;
 
     private Plugin<T> plugin;
@@ -421,7 +488,7 @@ public class Messages {
     }
   }
 
-  private static class PluginMethodIsDone extends AbstractMessage {
+  private class PluginMethodIsDone extends AbstractMessage {
     private static final long serialVersionUID = -8701179264086005994L;
 
     private Plugin<?> plugin;
@@ -460,7 +527,12 @@ public class Messages {
     }
   }
 
-  public static class PluginBeforeAllExecuteIsReady<T extends IsRODAObject> extends PluginMethodIsReady<T> {
+  public static <T extends IsRODAObject> PluginBeforeAllExecuteIsReady<T> newPluginBeforeAllExecuteIsReady(
+    Plugin<T> plugin) {
+    return INSTANCE.new PluginBeforeAllExecuteIsReady<T>(plugin);
+  }
+
+  public class PluginBeforeAllExecuteIsReady<T extends IsRODAObject> extends PluginMethodIsReady<T> {
     private static final long serialVersionUID = -7730727049162062388L;
 
     public PluginBeforeAllExecuteIsReady(Plugin<T> plugin) {
@@ -473,7 +545,11 @@ public class Messages {
     }
   }
 
-  public static class PluginBeforeAllExecuteIsDone extends PluginMethodIsDone {
+  public static PluginBeforeAllExecuteIsDone newPluginBeforeAllExecuteIsDone(Plugin<?> plugin, boolean withError) {
+    return INSTANCE.new PluginBeforeAllExecuteIsDone(plugin, withError);
+  }
+
+  public class PluginBeforeAllExecuteIsDone extends PluginMethodIsDone {
     private static final long serialVersionUID = 7449486178368177015L;
 
     public PluginBeforeAllExecuteIsDone(Plugin<?> plugin, boolean withError) {
@@ -486,7 +562,12 @@ public class Messages {
     }
   }
 
-  public static class PluginExecuteIsReady<T extends IsRODAObject> extends PluginMethodIsReady<T> {
+  public static <T extends IsRODAObject> PluginExecuteIsReady<T> newPluginExecuteIsReady(Plugin<T> plugin,
+    List<LiteOptionalWithCause> list) {
+    return INSTANCE.new PluginExecuteIsReady<T>(plugin, list);
+  }
+
+  public class PluginExecuteIsReady<T extends IsRODAObject> extends PluginMethodIsReady<T> {
     private static final long serialVersionUID = 1821489252490235130L;
 
     private List<LiteOptionalWithCause> list;
@@ -512,7 +593,11 @@ public class Messages {
     }
   }
 
-  public static class PluginExecuteIsDone extends PluginMethodIsDone {
+  public static PluginExecuteIsDone newPluginExecuteIsDone(Plugin<?> plugin, boolean withError) {
+    return INSTANCE.new PluginExecuteIsDone(plugin, withError);
+  }
+
+  public class PluginExecuteIsDone extends PluginMethodIsDone {
     private static final long serialVersionUID = -5136014936634139026L;
 
     public PluginExecuteIsDone(Plugin<?> plugin, boolean withError) {
@@ -530,7 +615,12 @@ public class Messages {
     }
   }
 
-  public static class PluginAfterAllExecuteIsReady<T extends IsRODAObject> extends PluginMethodIsReady<T> {
+  public static <T extends IsRODAObject> PluginAfterAllExecuteIsReady<T> newPluginAfterAllExecuteIsReady(
+    Plugin<T> plugin) {
+    return INSTANCE.new PluginAfterAllExecuteIsReady<T>(plugin);
+  }
+
+  public class PluginAfterAllExecuteIsReady<T extends IsRODAObject> extends PluginMethodIsReady<T> {
     private static final long serialVersionUID = 8852688692792086166L;
 
     public PluginAfterAllExecuteIsReady(Plugin<T> plugin) {
@@ -543,7 +633,11 @@ public class Messages {
     }
   }
 
-  public static class PluginAfterAllExecuteIsDone extends PluginMethodIsDone {
+  public static PluginAfterAllExecuteIsDone newPluginAfterAllExecuteIsDone(Plugin<?> plugin, boolean withError) {
+    return INSTANCE.new PluginAfterAllExecuteIsDone(plugin, withError);
+  }
+
+  public class PluginAfterAllExecuteIsDone extends PluginMethodIsDone {
     private static final long serialVersionUID = -5136014936634139026L;
 
     public PluginAfterAllExecuteIsDone(Plugin<?> plugin, boolean withError) {
@@ -557,7 +651,7 @@ public class Messages {
   }
 
   /*-------------------- EVENTS RELATED STATIC CLASSES --------------------*/
-  public abstract static class AbstractEventMessage extends AbstractMessage {
+  public abstract class AbstractEventMessage extends AbstractMessage {
     private static final long serialVersionUID = -2517455273875624115L;
 
     private String senderId;
@@ -577,7 +671,11 @@ public class Messages {
     }
   }
 
-  public static final class EventUserCreated extends AbstractEventMessage {
+  public static EventUserCreated newEventUserCreated(User user, String password, String senderId) {
+    return INSTANCE.new EventUserCreated(user, password, senderId);
+  }
+
+  public final class EventUserCreated extends AbstractEventMessage {
     private static final long serialVersionUID = -2517455273875624115L;
 
     private User user;
@@ -603,7 +701,12 @@ public class Messages {
     }
   }
 
-  public static final class EventUserUpdated extends AbstractEventMessage {
+  public final static EventUserUpdated newEventUserUpdated(User user, String password, boolean myUser,
+    String senderId) {
+    return INSTANCE.new EventUserUpdated(user, password, myUser, senderId);
+  }
+
+  public final class EventUserUpdated extends AbstractEventMessage {
     private static final long serialVersionUID = -2517455273875624115L;
 
     private User user;
@@ -636,7 +739,11 @@ public class Messages {
     }
   }
 
-  public static final class EventUserDeleted extends AbstractEventMessage {
+  public static EventUserDeleted newEventUserDeleted(String id, String senderId) {
+    return INSTANCE.new EventUserDeleted(id, senderId);
+  }
+
+  public final class EventUserDeleted extends AbstractEventMessage {
     private static final long serialVersionUID = -7862917122791858311L;
 
     private String id;
@@ -656,7 +763,11 @@ public class Messages {
     }
   }
 
-  public static final class EventGroupCreated extends AbstractEventMessage {
+  public static EventGroupCreated newEventGroupCreated(Group group, String senderId) {
+    return INSTANCE.new EventGroupCreated(group, senderId);
+  }
+
+  public final class EventGroupCreated extends AbstractEventMessage {
     private static final long serialVersionUID = -51380983717488740L;
 
     private Group group;
@@ -676,7 +787,11 @@ public class Messages {
     }
   }
 
-  public static final class EventGroupUpdated extends AbstractEventMessage {
+  public static EventGroupUpdated newEventGroupUpdated(Group group, String senderId) {
+    return INSTANCE.new EventGroupUpdated(group, senderId);
+  }
+
+  public final class EventGroupUpdated extends AbstractEventMessage {
     private static final long serialVersionUID = -51380983717488740L;
 
     private Group group;
@@ -696,7 +811,11 @@ public class Messages {
     }
   }
 
-  public static final class EventGroupDeleted extends AbstractEventMessage {
+  public static EventGroupDeleted newEventGroupDeleted(String id, String senderId) {
+    return INSTANCE.new EventGroupDeleted(id, senderId);
+  }
+
+  public final class EventGroupDeleted extends AbstractEventMessage {
     private static final long serialVersionUID = -7862917122791858311L;
 
     private String id;

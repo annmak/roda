@@ -521,7 +521,7 @@ public class RodaCoreFactory {
    * <li>configuration files: node.type</li>
    * </p>
    */
-  private static String getProperty(String property, String defaultValue) {
+  public static String getProperty(String property, String defaultValue) {
     String sysProperty = property;
     if (!sysProperty.startsWith("roda.")) {
       sysProperty = "roda." + sysProperty;
@@ -533,9 +533,10 @@ public class RodaCoreFactory {
       if (ret == null && getRodaConfiguration() != null) {
         String confProperty = property.replaceFirst("^roda.", "");
         ret = getRodaConfiguration().getString(confProperty, defaultValue);
-      } else {
-        ret = defaultValue;
       }
+    }
+    if (ret == null) {
+      ret = defaultValue;
     }
     return ret;
   }
@@ -565,7 +566,7 @@ public class RodaCoreFactory {
    * <li>configuration files: node.type</li>
    * </p>
    */
-  private static boolean getProperty(String property, boolean defaultValue) {
+  public static boolean getProperty(String property, boolean defaultValue) {
     return Boolean.parseBoolean(getProperty(property, Boolean.toString(defaultValue)));
   }
 
@@ -1009,10 +1010,14 @@ public class RodaCoreFactory {
       }
 
       if (instantiatedWithoutErrors) {
-        // instantiate solr
-        solr = instantiateSolr(solrHome);
+        boolean writeIsAllowed = checkIfWriteIsAllowed(getNodeType());
 
-        SolrBootstrapUtils.bootstrapSchemas(solr);
+        // instantiate solr
+        solr = instantiateSolr(solrHome, writeIsAllowed);
+
+        if (writeIsAllowed) {
+          SolrBootstrapUtils.bootstrapSchemas(solr);
+        }
 
         // instantiate index related object
         index = new IndexService(solr, model, metricsRegistry, rodaConfiguration, nodeType);
@@ -1036,7 +1041,7 @@ public class RodaCoreFactory {
     return value;
   }
 
-  private static SolrClient instantiateSolr(Path solrHome) throws GenericException {
+  private static SolrClient instantiateSolr(Path solrHome, boolean writeIsAllowed) throws GenericException {
     SolrType solrType = SolrType
       .valueOf(getConfigurationString(RodaConstants.CORE_SOLR_TYPE, RodaConstants.DEFAULT_SOLR_TYPE.toString()));
 
@@ -1080,7 +1085,9 @@ public class RodaCoreFactory {
 
       waitForSolrCluster(cloudSolrClient);
 
-      bootstrap(cloudSolrClient, solrHome);
+      if (writeIsAllowed) {
+        bootstrap(cloudSolrClient, solrHome);
+      }
       return cloudSolrClient;
     } else {
       // default to Embedded
@@ -1459,13 +1466,14 @@ public class RodaCoreFactory {
         }
 
         RodaCoreFactory.ldapUtility.initDirectoryService(ldifs);
-        indexUsersAndGroupsFromLDAP();
       } else {
         RodaCoreFactory.ldapUtility.initDirectoryService();
       }
 
       createRoles(rodaConfig);
-      indexUsersAndGroupsFromLDAP();
+      if (checkIfWriteIsAllowed(getNodeType())) {
+        indexUsersAndGroupsFromLDAP();
+      }
     } catch (final Exception e) {
       LOGGER.error("Error starting up embedded ApacheDS", e);
       instantiatedWithoutErrors = false;

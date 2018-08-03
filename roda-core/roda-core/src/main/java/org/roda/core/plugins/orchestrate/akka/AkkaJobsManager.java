@@ -288,7 +288,7 @@ public class AkkaJobsManager extends AkkaBaseActor {
     }
     // 20180606 hsilva: not sending any list to the sender as it will most
     // certainly end up in deadletters
-    msg.getSender().tell(new Messages.JobsManagerReplyToAcquireLock(Collections.emptyList()), getSelf());
+    msg.getSender().tell(Messages.newJobsManagerReplyToAcquireLock(Collections.emptyList()), getSelf());
 
     if (decreaseWaiting) {
       updateLockRequestsWaitingToAcquireLock(false);
@@ -326,7 +326,7 @@ public class AkkaJobsManager extends AkkaBaseActor {
     }
     // 20180606 hsilva: not sending any list to the sender as it will most
     // certainly end up in deadletters
-    getSender().tell(new Messages.JobsManagerReplyToReleaseLock(Collections.emptyList()), getSelf());
+    getSender().tell(Messages.newJobsManagerReplyToReleaseLock(Collections.emptyList()), getSelf());
   }
 
   private void processAcquiredLocksTimeout() {
@@ -351,7 +351,7 @@ public class AkkaJobsManager extends AkkaBaseActor {
 
   private void sendTick() {
     if (ticksWaitingToBeProcessed.getCount() == 0) {
-      self().tell(new Messages.JobsManagerTick(), self());
+      self().tell(Messages.newJobsManagerTick(), self());
       ticksWaitingToBeProcessed.inc();
     }
   }
@@ -369,7 +369,7 @@ public class AkkaJobsManager extends AkkaBaseActor {
     } else {
       // 20180530 hsilva: message stating that lock was not possible
       // (in order to avoid spending timeout to realize that)
-      getSender().tell(new Messages.JobsManagerNotLockableAtTheTime(
+      getSender().tell(Messages.newJobsManagerNotLockableAtTheTime(
         "Unable to acquire lock & configured to not wait for lock if already locked"), getSelf());
     }
 
