@@ -28,16 +28,16 @@ public class EventsManager implements EventsNotifier {
   }
 
   @Override
-  public void notifyUserUpdated(ModelService model, User user, String password) {
+  public void notifyUserUpdated(ModelService model, User user, User updatedUser, String password) {
     if (enabled) {
-      eventsNotifier.notifyUserUpdated(model, user, password);
+      eventsNotifier.notifyUserUpdated(model, user, updatedUser, password);
     }
   }
 
   @Override
-  public void notifyMyUserUpdated(ModelService model, User user, String password) {
+  public void notifyMyUserUpdated(ModelService model, User user, User updatedUser, String password) {
     if (enabled) {
-      eventsNotifier.notifyMyUserUpdated(model, user, password);
+      eventsNotifier.notifyMyUserUpdated(model, user, updatedUser, password);
     }
   }
 
@@ -56,9 +56,9 @@ public class EventsManager implements EventsNotifier {
   }
 
   @Override
-  public void notifyGroupUpdated(ModelService model, Group group) {
+  public void notifyGroupUpdated(ModelService model, Group group, Group updatedGroup) {
     if (enabled) {
-      eventsNotifier.notifyGroupUpdated(model, group);
+      eventsNotifier.notifyGroupUpdated(model, group, updatedGroup);
     }
   }
 

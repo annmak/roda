@@ -29,8 +29,6 @@ import akka.actor.Address;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.dispatch.OnComplete;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
@@ -44,8 +42,7 @@ public class AkkaEventsHandlerAndNotifier extends AbstractEventsHandler implemen
   protected static final String TOPIC_NAME = "events";
 
   private ActorSystem eventsSystem;
-  private ActorRef eventsNotifier;
-  private ActorRef eventsHandler;
+  private ActorRef eventsNotifierAndHandlerActor;
   private String instanceSenderId;
   private boolean shuttingDown = false;
 
@@ -58,11 +55,84 @@ public class AkkaEventsHandlerAndNotifier extends AbstractEventsHandler implemen
         "Found no seed nodes addresses (in any source, i.e., 1) system properties; 2) env. variables; 3) properties files)");
     }
     Cluster.get(eventsSystem).joinSeedNodes(seedNodesAddresses);
-    eventsNotifier = DistributedPubSub.get(eventsSystem).mediator();
-    instanceSenderId = eventsNotifier.toString();
-    eventsHandler = eventsSystem
-      .actorOf(Props.create(AkkaEventsHandler.class, (EventsHandler) this, eventsNotifier.toString()), "eventsHandler");
 
+    eventsNotifierAndHandlerActor = eventsSystem.actorOf(
+      Props.create(AkkaEventsHandlerAndNotifierActor.class, (EventsHandler) this), "eventsNotifierAndHandlerActor");
+    instanceSenderId = eventsNotifierAndHandlerActor.toString();
+  }
+
+  @Override
+  public void notifyUserCreated(ModelService model, User user, String password) {
+    LOGGER.debug("notifyUserCreated '{}' with password '{}'", user, password != null ? "******" : "NULL");
+    eventsNotifierAndHandlerActor.tell(Messages.newEventUserCreated(user, password, instanceSenderId),
+      ActorRef.noSender());
+  }
+
+  @Override
+  public void notifyUserUpdated(ModelService model, User user, User updatedUser, String password) {
+    LOGGER.debug("notifyUserUpdated '{}' with password '{}'", user, password != null ? "******" : "NULL");
+    eventsNotifierAndHandlerActor.tell(Messages.newEventUserUpdated(user, password, false, instanceSenderId),
+      ActorRef.noSender());
+  }
+
+  @Override
+  public void notifyMyUserUpdated(ModelService model, User user, User updatedUser, String password) {
+    LOGGER.debug("notifyMyUserUpdated '{}' with password '{}'", user, password != null ? "******" : "NULL");
+    eventsNotifierAndHandlerActor.tell(Messages.newEventUserUpdated(user, password, true, instanceSenderId),
+      ActorRef.noSender());
+  }
+
+  @Override
+  public void notifyUserDeleted(ModelService model, String id) {
+    LOGGER.debug("notifyUserDeleted '{}'", id);
+    eventsNotifierAndHandlerActor.tell(Messages.newEventUserDeleted(id, instanceSenderId), ActorRef.noSender());
+  }
+
+  @Override
+  public void notifyGroupCreated(ModelService model, Group group) {
+    LOGGER.debug("notifyGroupCreated '{}'", group);
+    eventsNotifierAndHandlerActor.tell(Messages.newEventGroupCreated(group, instanceSenderId), ActorRef.noSender());
+  }
+
+  @Override
+  public void notifyGroupUpdated(ModelService model, Group group, Group updatedGroup) {
+    LOGGER.debug("notifyGroupUpdated '{}'", group);
+    eventsNotifierAndHandlerActor.tell(Messages.newEventGroupUpdated(group, instanceSenderId), ActorRef.noSender());
+  }
+
+  @Override
+  public void notifyGroupDeleted(ModelService model, String id) {
+    LOGGER.debug("notifyGroupDeleted '{}'", id);
+    eventsNotifierAndHandlerActor.tell(Messages.newEventGroupDeleted(id, instanceSenderId), ActorRef.noSender());
+  }
+
+  @Override
+  public void shutdown() {
+    if (!shuttingDown) {
+      shuttingDown = true;
+
+      LOGGER.info("Going to shutdown EVENTS actor system");
+      Future<Terminated> terminate = eventsSystem.terminate();
+      terminate.onComplete(new OnComplete<Terminated>() {
+        @Override
+        public void onComplete(Throwable failure, Terminated result) {
+          if (failure != null) {
+            LOGGER.error("Error while shutting down EVENTS actor system", failure);
+          } else {
+            LOGGER.info("Done shutting down EVENTS actor system");
+          }
+        }
+      }, eventsSystem.dispatcher());
+
+      try {
+        LOGGER.info("Waiting up to 30 seconds for EVENTS actor system  to shutdown");
+        Await.result(eventsSystem.whenTerminated(), Duration.create(30, "seconds"));
+      } catch (TimeoutException e) {
+        LOGGER.warn("EVENTS Actor system shutdown wait timed out, continuing...");
+      } catch (Exception e) {
+        LOGGER.error("Error while shutting down EVENTS actor system", e);
+      }
+    }
   }
 
   private List<Address> getSeedNodesAddresses() {
@@ -106,89 +176,6 @@ public class AkkaEventsHandlerAndNotifier extends AbstractEventsHandler implemen
     }
 
     return seedNodes;
-  }
-
-  @Override
-  public void notifyUserCreated(ModelService model, User user, String password) {
-    LOGGER.debug("notifyUserCreated '{}' with password '{}'", user, password != null ? "******" : "NULL");
-    eventsNotifier.tell(
-      new DistributedPubSubMediator.Publish(TOPIC_NAME, Messages.newEventUserCreated(user, password, instanceSenderId)),
-      ActorRef.noSender());
-  }
-
-  @Override
-  public void notifyUserUpdated(ModelService model, User user, String password) {
-    LOGGER.debug("notifyUserUpdated '{}' with password '{}'", user, password != null ? "******" : "NULL");
-    eventsNotifier.tell(new DistributedPubSubMediator.Publish(TOPIC_NAME,
-      Messages.newEventUserUpdated(user, password, false, instanceSenderId)), ActorRef.noSender());
-  }
-
-  @Override
-  public void notifyMyUserUpdated(ModelService model, User user, String password) {
-    LOGGER.debug("notifyMyUserUpdated '{}' with password '{}'", user, password != null ? "******" : "NULL");
-    eventsNotifier.tell(new DistributedPubSubMediator.Publish(TOPIC_NAME,
-      Messages.newEventUserUpdated(user, password, true, instanceSenderId)), ActorRef.noSender());
-  }
-
-  @Override
-  public void notifyUserDeleted(ModelService model, String id) {
-    LOGGER.debug("notifyUserDeleted '{}'", id);
-    eventsNotifier.tell(
-      new DistributedPubSubMediator.Publish(TOPIC_NAME, Messages.newEventUserDeleted(id, instanceSenderId)),
-      ActorRef.noSender());
-  }
-
-  @Override
-  public void notifyGroupCreated(ModelService model, Group group) {
-    LOGGER.debug("notifyGroupCreated '{}'", group);
-    eventsNotifier.tell(
-      new DistributedPubSubMediator.Publish(TOPIC_NAME, Messages.newEventGroupCreated(group, instanceSenderId)),
-      ActorRef.noSender());
-  }
-
-  @Override
-  public void notifyGroupUpdated(ModelService model, Group group) {
-    LOGGER.debug("notifyGroupUpdated '{}'", group);
-    eventsNotifier.tell(
-      new DistributedPubSubMediator.Publish(TOPIC_NAME, Messages.newEventGroupUpdated(group, instanceSenderId)),
-      ActorRef.noSender());
-  }
-
-  @Override
-  public void notifyGroupDeleted(ModelService model, String id) {
-    LOGGER.debug("notifyGroupDeleted '{}'", id);
-    eventsNotifier.tell(
-      new DistributedPubSubMediator.Publish(TOPIC_NAME, Messages.newEventGroupDeleted(id, instanceSenderId)),
-      ActorRef.noSender());
-  }
-
-  @Override
-  public void shutdown() {
-    if (!shuttingDown) {
-      shuttingDown = true;
-
-      LOGGER.info("Going to shutdown EVENTS actor system");
-      Future<Terminated> terminate = eventsSystem.terminate();
-      terminate.onComplete(new OnComplete<Terminated>() {
-        @Override
-        public void onComplete(Throwable failure, Terminated result) {
-          if (failure != null) {
-            LOGGER.error("Error while shutting down EVENTS actor system", failure);
-          } else {
-            LOGGER.info("Done shutting down EVENTS actor system");
-          }
-        }
-      }, eventsSystem.dispatcher());
-
-      try {
-        LOGGER.info("Waiting up to 30 seconds for EVENTS actor system  to shutdown");
-        Await.result(eventsSystem.whenTerminated(), Duration.create(30, "seconds"));
-      } catch (TimeoutException e) {
-        LOGGER.warn("EVENTS Actor system shutdown wait timed out, continuing...");
-      } catch (Exception e) {
-        LOGGER.error("Error while shutting down EVENTS actor system", e);
-      }
-    }
   }
 
 }

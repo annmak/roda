@@ -21,9 +21,16 @@ public abstract class AbstractEventsHandler implements EventsHandler {
   public void handleUserCreated(ModelService model, User user, String password) {
     try {
       model.createUser(user, password, true, true);
-    } catch (EmailAlreadyExistsException | UserAlreadyExistsException | IllegalOperationException | GenericException
-      | NotFoundException | AuthorizationDeniedException e) {
+    } catch (IllegalOperationException | GenericException | NotFoundException | AuthorizationDeniedException e) {
       LOGGER.error("Error handling user created event", e);
+    } catch (EmailAlreadyExistsException | UserAlreadyExistsException e) {
+      try {
+        model.updateUser(user, password, true, true);
+      } catch (GenericException | AlreadyExistsException | NotFoundException | AuthorizationDeniedException e1) {
+        LOGGER.error(
+          "Error handling user created event (but user already exists & we were trying to update it, but exception occurred)",
+          e1);
+      }
     }
   }
 
@@ -31,8 +38,17 @@ public abstract class AbstractEventsHandler implements EventsHandler {
   public void handleUserUpdated(ModelService model, User user, String password) {
     try {
       model.updateUser(user, password, true, true);
-    } catch (GenericException | AlreadyExistsException | NotFoundException | AuthorizationDeniedException e) {
+    } catch (GenericException | AlreadyExistsException | AuthorizationDeniedException e) {
       LOGGER.error("Error handling user updated event", e);
+    } catch (NotFoundException e) {
+      try {
+        model.createUser(user, password, true, true);
+      } catch (EmailAlreadyExistsException | UserAlreadyExistsException | IllegalOperationException | GenericException
+        | NotFoundException | AuthorizationDeniedException e1) {
+        LOGGER.error(
+          "Error handling user updated event (but user was not found & we were trying to create it, but exception occurred)",
+          e1);
+      }
     }
   }
 
@@ -40,15 +56,34 @@ public abstract class AbstractEventsHandler implements EventsHandler {
   public void handleMyUserUpdated(ModelService model, User user, String password) {
     try {
       model.updateMyUser(user, password, true, true);
-    } catch (GenericException | AlreadyExistsException | NotFoundException | AuthorizationDeniedException e) {
+    } catch (GenericException | AlreadyExistsException | AuthorizationDeniedException e) {
       LOGGER.error("Error handling user updated event", e);
+    } catch (NotFoundException e) {
+      try {
+        model.createUser(user, password, true, true);
+      } catch (EmailAlreadyExistsException | UserAlreadyExistsException | IllegalOperationException | GenericException
+        | NotFoundException | AuthorizationDeniedException e1) {
+        LOGGER.error(
+          "Error handling user updated event (but user was not found & we were trying to create it, but exception occurred)",
+          e1);
+      }
     }
   }
 
   @Override
   public void handleUserDeleted(ModelService model, String userID) {
     try {
-      model.deleteUser(userID, true, true);
+      User user = null;
+      try {
+        // 20180814 hsilva: the following is to avoid deleting already deleted
+        // user
+        user = model.retrieveUserByName(userID);
+        model.deleteUser(userID, true, true);
+      } catch (GenericException e) {
+        if (user != null) {
+          throw e;
+        }
+      }
     } catch (GenericException | AuthorizationDeniedException e) {
       LOGGER.error("Error handling user deleted event", e);
     }
@@ -57,22 +92,43 @@ public abstract class AbstractEventsHandler implements EventsHandler {
   public void handleGroupCreated(ModelService model, Group group) {
     try {
       model.createGroup(group, true, true);
-    } catch (GenericException | AlreadyExistsException | AuthorizationDeniedException e) {
+    } catch (GenericException | AuthorizationDeniedException e) {
       LOGGER.error("Error handling create group event", e);
+    } catch (AlreadyExistsException e) {
+      try {
+        model.updateGroup(group, true, true);
+      } catch (GenericException | NotFoundException | AuthorizationDeniedException e1) {
+        LOGGER.error(
+          "Error handling create group event (but group already exists & we were trying to update it, but exception occurred)",
+          e1);
+      }
     }
   }
 
   public void handleGroupUpdated(ModelService model, Group group) {
     try {
       model.updateGroup(group, true, true);
-    } catch (GenericException | NotFoundException | AuthorizationDeniedException e) {
+    } catch (GenericException | AuthorizationDeniedException e) {
       LOGGER.error("Error handling update group event", e);
+    } catch (NotFoundException e) {
+      try {
+        model.createGroup(group, true, true);
+      } catch (GenericException | AlreadyExistsException | AuthorizationDeniedException e1) {
+        LOGGER.error(
+          "Error handling update group event (but group was not found & we were trying to create it, but exception occurred)",
+          e1);
+      }
     }
   }
 
   public void handleGroupDeleted(ModelService model, String id) {
     try {
-      model.deleteGroup(id, true, true);
+      try {
+        model.retrieveGroup(id);
+        model.deleteGroup(id, true, true);
+      } catch (NotFoundException e) {
+        // do nothing as it is already deleted
+      }
     } catch (GenericException | AuthorizationDeniedException e) {
       LOGGER.error("Error handling delete group event", e);
     }

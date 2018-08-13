@@ -1032,6 +1032,11 @@
 				<artifactId>akka-slf4j_2.11</artifactId>
 				<version>${akka.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>com.typesafe.akka</groupId>
+				<artifactId>akka-distributed-data_2.11</artifactId>
+				<version>${akka.version}</version>
+			</dependency>
 
 			<dependency>
 				<groupId>com.lightbend.akka.management</groupId>

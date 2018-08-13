@@ -22,7 +22,6 @@ import javax.xml.xpath.XPathExpressionException;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
-import org.roda.core.RodaCoreFactory;
 import org.roda.core.common.iterables.CloseableIterable;
 import org.roda.core.data.common.RodaConstants;
 import org.roda.core.data.exceptions.AuthorizationDeniedException;
@@ -159,7 +158,8 @@ public class IndexModelObserver implements ModelObserver {
     ReturnWithExceptions<Void, ModelObserver> ret = new ReturnWithExceptions<>(this);
 
     try (CloseableIterable<OptionalWithCause<PreservationMetadata>> preservationMetadata = (representationId == null)
-      ? model.listPreservationMetadata(aipId, true) : model.listPreservationMetadata(aipId, representationId)) {
+      ? model.listPreservationMetadata(aipId, true)
+      : model.listPreservationMetadata(aipId, representationId)) {
 
       for (OptionalWithCause<PreservationMetadata> opm : preservationMetadata) {
         if (opm.isPresent()) {
@@ -828,7 +828,7 @@ public class IndexModelObserver implements ModelObserver {
 
   private ReturnWithExceptions<Void, ModelObserver> indexJobReports(Job job) {
     ReturnWithExceptions<Void, ModelObserver> ret = new ReturnWithExceptions<>(this);
-    StorageService storage = RodaCoreFactory.getStorageService();
+    StorageService storage = model.getStorage();
     try (CloseableIterable<Resource> listResourcesUnderDirectory = storage
       .listResourcesUnderDirectory(ModelUtils.getJobReportsStoragePath(job.getId()), true)) {
 
@@ -906,9 +906,9 @@ public class IndexModelObserver implements ModelObserver {
     List<String> successfulPlugins = new ArrayList<>();
     List<String> unsuccessfulPlugins = new ArrayList<>();
 
-    if(job.getPluginType().equals(PluginType.INGEST)) {
-      for(Report item : jobReport.getReports()) {
-        if(item.getPluginState().equals(PluginState.SUCCESS)) {
+    if (job.getPluginType().equals(PluginType.INGEST)) {
+      for (Report item : jobReport.getReports()) {
+        if (item.getPluginState().equals(PluginState.SUCCESS)) {
           successfulPlugins.add(item.getPluginName());
         } else {
           unsuccessfulPlugins.add(item.getPluginName());

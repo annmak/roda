@@ -1904,7 +1904,8 @@ public class ModelService extends ModelObservable {
       }
 
       if (!isHandlingEvent) {
-        eventsManager.notifyUserUpdated(this, updatedUser, password);
+        // FIXME 20180813 hsilva: user is not the previous state of the user
+        eventsManager.notifyUserUpdated(this, user, updatedUser, password);
       }
 
       return updatedUser;
@@ -1932,7 +1933,8 @@ public class ModelService extends ModelObservable {
         }
 
         if (!isHandlingEvent) {
-          eventsManager.notifyUserUpdated(this, updatedUser, null);
+          // FIXME 20180813 hsilva: user is not the previous state of the user
+          eventsManager.notifyUserUpdated(this, user, updatedUser, null);
         }
 
         return updatedUser;
@@ -1960,7 +1962,8 @@ public class ModelService extends ModelObservable {
       }
 
       if (!isHandlingEvent) {
-        eventsManager.notifyUserUpdated(this, updatedUser, password);
+        // FIXME 20180813 hsilva: user is not the previous state of the user
+        eventsManager.notifyUserUpdated(this, user, updatedUser, password);
       }
 
       return updatedUser;
@@ -2049,7 +2052,8 @@ public class ModelService extends ModelObservable {
       }
 
       if (!isHandlingEvent) {
-        eventsManager.notifyGroupUpdated(this, updatedGroup);
+        // FIXME 20180813 hsilva: group is not the previous state of the group
+        eventsManager.notifyGroupUpdated(this, group, updatedGroup);
       }
 
       return updatedGroup;

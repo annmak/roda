@@ -445,6 +445,11 @@
 			<artifactId>akka-slf4j_2.11</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>com.typesafe.akka</groupId>
+			<artifactId>akka-distributed-data_2.11</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>com.lightbend.akka.management</groupId>
 			<artifactId>akka-management-cluster-bootstrap_2.11</artifactId>
 		</dependency>
