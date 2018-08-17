@@ -19,6 +19,7 @@ public abstract class AbstractEventsHandler implements EventsHandler {
 
   @Override
   public void handleUserCreated(ModelService model, User user, String password) {
+    LOGGER.debug("handleUserCreated '{}' with password '{}'", user, password != null ? "******" : "NULL");
     try {
       model.createUser(user, password, true, true);
     } catch (IllegalOperationException | GenericException | NotFoundException | AuthorizationDeniedException e) {
@@ -36,6 +37,7 @@ public abstract class AbstractEventsHandler implements EventsHandler {
 
   @Override
   public void handleUserUpdated(ModelService model, User user, String password) {
+    LOGGER.debug("handleUserUpdated '{}' with password '{}'", user, password != null ? "******" : "NULL");
     try {
       model.updateUser(user, password, true, true);
     } catch (GenericException | AlreadyExistsException | AuthorizationDeniedException e) {
@@ -54,6 +56,7 @@ public abstract class AbstractEventsHandler implements EventsHandler {
 
   @Override
   public void handleMyUserUpdated(ModelService model, User user, String password) {
+    LOGGER.debug("handleMyUserUpdated '{}' with password '{}'", user, password != null ? "******" : "NULL");
     try {
       model.updateMyUser(user, password, true, true);
     } catch (GenericException | AlreadyExistsException | AuthorizationDeniedException e) {
@@ -71,14 +74,15 @@ public abstract class AbstractEventsHandler implements EventsHandler {
   }
 
   @Override
-  public void handleUserDeleted(ModelService model, String userID) {
+  public void handleUserDeleted(ModelService model, String id) {
+    LOGGER.debug("handleUserDeleted '{}'", id);
     try {
       User user = null;
       try {
         // 20180814 hsilva: the following is to avoid deleting already deleted
         // user
-        user = model.retrieveUserByName(userID);
-        model.deleteUser(userID, true, true);
+        user = model.retrieveUserByName(id);
+        model.deleteUser(id, true, true);
       } catch (GenericException e) {
         if (user != null) {
           throw e;
@@ -90,6 +94,7 @@ public abstract class AbstractEventsHandler implements EventsHandler {
   }
 
   public void handleGroupCreated(ModelService model, Group group) {
+    LOGGER.debug("handleGroupCreated '{}'", group);
     try {
       model.createGroup(group, true, true);
     } catch (GenericException | AuthorizationDeniedException e) {
@@ -106,6 +111,7 @@ public abstract class AbstractEventsHandler implements EventsHandler {
   }
 
   public void handleGroupUpdated(ModelService model, Group group) {
+    LOGGER.debug("handleGroupUpdated '{}'", group);
     try {
       model.updateGroup(group, true, true);
     } catch (GenericException | AuthorizationDeniedException e) {
@@ -122,6 +128,7 @@ public abstract class AbstractEventsHandler implements EventsHandler {
   }
 
   public void handleGroupDeleted(ModelService model, String id) {
+    LOGGER.debug("handleGroupDeleted '{}'", id);
     try {
       try {
         model.retrieveGroup(id);

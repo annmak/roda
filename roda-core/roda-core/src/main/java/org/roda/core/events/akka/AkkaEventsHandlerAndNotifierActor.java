@@ -2,8 +2,8 @@ package org.roda.core.events.akka;
 
 import static akka.cluster.ddata.Replicator.writeLocal;
 
+import java.util.Date;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 import org.roda.core.RodaCoreFactory;
@@ -13,7 +13,6 @@ import org.roda.core.common.akka.Messages.EventGroupUpdated;
 import org.roda.core.common.akka.Messages.EventUserCreated;
 import org.roda.core.common.akka.Messages.EventUserDeleted;
 import org.roda.core.common.akka.Messages.EventUserUpdated;
-import org.roda.core.data.v2.IsRODAObject;
 import org.roda.core.data.v2.user.Group;
 import org.roda.core.data.v2.user.User;
 import org.roda.core.events.EventsHandler;
@@ -27,7 +26,7 @@ import akka.cluster.ddata.DistributedData;
 import akka.cluster.ddata.GSet;
 import akka.cluster.ddata.GSetKey;
 import akka.cluster.ddata.Key;
-import akka.cluster.ddata.LWWMap;
+import akka.cluster.ddata.ORMap;
 import akka.cluster.ddata.Replicator.Changed;
 import akka.cluster.ddata.Replicator.Subscribe;
 import akka.cluster.ddata.Replicator.Update;
@@ -84,7 +83,7 @@ public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
     if (e.key().equals(allObjectsKey)) {
       handleAllObjectsKey((Changed<GSet<ObjectKey>>) e);
     } else if (e.key() instanceof ObjectKey) {
-      handleObjectChanged((Changed<LWWMap<String, Object>>) e);
+      handleObjectChanged((Changed<ORMap<String, CRDTWrapper>>) e);
     }
   }
 
@@ -100,14 +99,14 @@ public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
     keys = newKeys;
   }
 
-  private void handleObjectChanged(Changed<LWWMap<String, Object>> e) {
+  private void handleObjectChanged(Changed<ORMap<String, CRDTWrapper>> e) {
     String objectId = e.key().id().replaceFirst("cache-", "");
-    Option<Object> option = e.dataValue().get(objectId);
+    Option<CRDTWrapper> option = e.dataValue().get(objectId);
     if (option.isDefined()) {
-      ObjectWrapper wrapper = (ObjectWrapper) option.get();
+      CRDTWrapper wrapper = (CRDTWrapper) option.get();
       if (!wrapper.getInstanceId().equals(instanceSenderId)) {
         if (objectId.startsWith("user")) {
-          if (!wrapper.isUpdate) {
+          if (!wrapper.isUpdate()) {
             // FIXME 20180814 hsilva: still missing passwords
             eventsHandler.handleUserCreated(RodaCoreFactory.getModelService(), (User) wrapper.getRodaObject(), null);
           } else {
@@ -115,7 +114,7 @@ public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
             eventsHandler.handleUserUpdated(RodaCoreFactory.getModelService(), (User) wrapper.getRodaObject(), null);
           }
         } else if (objectId.startsWith("group")) {
-          if (!wrapper.isUpdate) {
+          if (!wrapper.isUpdate()) {
             eventsHandler.handleGroupCreated(RodaCoreFactory.getModelService(), (Group) wrapper.getRodaObject());
           } else {
             eventsHandler.handleGroupUpdated(RodaCoreFactory.getModelService(), (Group) wrapper.getRodaObject());
@@ -134,12 +133,12 @@ public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
 
   private void handleUserCreated(EventUserCreated e) {
     String key = "user-" + e.getUser().getId();
-    putObjectInCache(key, new ObjectWrapper(e.getUser(), false, instanceSenderId));
+    putObjectInCache(key, new CRDTWrapper(e.getUser(), false, instanceSenderId, new Date().getTime()));
   }
 
   private void handleUserUpdated(EventUserUpdated e) {
     String key = "user-" + e.getUser().getId();
-    putObjectInCache(key, new ObjectWrapper(e.getUser(), true, instanceSenderId));
+    putObjectInCache(key, new CRDTWrapper(e.getUser(), true, instanceSenderId, new Date().getTime()));
   }
 
   private void handleUserDeleted(EventUserDeleted e) {
@@ -149,12 +148,12 @@ public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
 
   private void handleGroupCreated(EventGroupCreated e) {
     String key = "group-" + e.getGroup().getId();
-    putObjectInCache(key, new ObjectWrapper(e.getGroup(), false, instanceSenderId));
+    putObjectInCache(key, new CRDTWrapper(e.getGroup(), false, instanceSenderId, new Date().getTime()));
   }
 
   private void handleGroupUpdated(EventGroupUpdated e) {
     String key = "group-" + e.getGroup().getId();
-    putObjectInCache(key, new ObjectWrapper(e.getGroup(), true, instanceSenderId));
+    putObjectInCache(key, new CRDTWrapper(e.getGroup(), true, instanceSenderId, new Date().getTime()));
   }
 
   private void handleGroupDeleted(EventGroupDeleted e) {
@@ -162,7 +161,7 @@ public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
     evictObjectFromCache(key);
   }
 
-  private void putObjectInCache(String key, Object value) {
+  private void putObjectInCache(String key, CRDTWrapper value) {
     ObjectKey objectKey = dataKey(key);
     if (!keys.contains(objectKey)) {
       Update<GSet<ObjectKey>> update1 = new Update<>(allObjectsKey, GSet.create(), writeLocal(),
@@ -170,9 +169,9 @@ public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
       replicator.tell(update1, self());
     }
 
-    Optional<Object> ctx = Optional.of(getSender());
-    Update<LWWMap<String, Object>> update = new Update<LWWMap<String, Object>>(dataKey(key), LWWMap.create(),
-      writeLocal(), ctx, curr -> curr.put(node, key, value));
+    // Optional<Object> ctx = Optional.of(getSender());
+    Update<ORMap<String, CRDTWrapper>> update = new Update<ORMap<String, CRDTWrapper>>(dataKey(key), ORMap.create(),
+      writeLocal(), curr -> curr.put(node, key, value));
     replicator.tell(update, self());
   }
 
@@ -184,7 +183,7 @@ public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
       replicator.tell(update1, self());
     }
 
-    Update<LWWMap<String, Object>> update = new Update<>(objectKey, LWWMap.create(), writeLocal(),
+    Update<ORMap<String, CRDTWrapper>> update = new Update<>(objectKey, ORMap.create(), writeLocal(),
       curr -> curr.remove(node, key));
     replicator.tell(update, self());
   }
@@ -193,39 +192,7 @@ public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
     return new ObjectKey("cache-" + entryKey);
   }
 
-  public static class ObjectWrapper implements IsRODAObject {
-    private static final long serialVersionUID = 2512655095108429642L;
-
-    private IsRODAObject rodaObject;
-    private boolean isUpdate;
-    private String instanceId;
-
-    public ObjectWrapper(IsRODAObject rodaObject, boolean isUpdate, String instanceId) {
-      this.rodaObject = rodaObject;
-      this.isUpdate = isUpdate;
-      this.instanceId = instanceId;
-    }
-
-    @Override
-    public String getId() {
-      return rodaObject.getId();
-    }
-
-    public IsRODAObject getRodaObject() {
-      return rodaObject;
-    }
-
-    public boolean isUpdate() {
-      return isUpdate;
-    }
-
-    public String getInstanceId() {
-      return instanceId;
-    }
-
-  }
-
-  public static class ObjectKey extends Key<LWWMap<String, Object>> {
+  public static class ObjectKey extends Key<ORMap<String, CRDTWrapper>> {
     private static final long serialVersionUID = 1L;
 
     public ObjectKey(String eventKey) {
