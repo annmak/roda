@@ -39,7 +39,6 @@ public class AkkaEventsHandlerAndNotifier extends AbstractEventsHandler implemen
   private static final Logger LOGGER = LoggerFactory.getLogger(AkkaEventsHandlerAndNotifier.class);
 
   private static final String EVENTS_SYSTEM = "EventsSystem";
-  protected static final String TOPIC_NAME = "events";
 
   private ActorSystem eventsSystem;
   private ActorRef eventsNotifierAndHandlerActor;

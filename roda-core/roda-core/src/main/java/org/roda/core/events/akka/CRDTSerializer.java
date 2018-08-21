@@ -13,8 +13,7 @@ import akka.serialization.SerializerWithStringManifest;
 
 public class CRDTSerializer extends SerializerWithStringManifest {
 
-  private static final String USER_MANIFEST = "user";
-  private static final String GROUP_MANIFEST = "group";
+  private static final String WRAPPER_MANIFEST = "wrapper";
 
   @Override
   public int identifier() {
@@ -24,9 +23,7 @@ public class CRDTSerializer extends SerializerWithStringManifest {
   @Override
   public String manifest(Object obj) {
     if (obj instanceof CRDTWrapper) {
-      return USER_MANIFEST;
-    } else if (obj instanceof GroupCRDT) {
-      return GROUP_MANIFEST;
+      return WRAPPER_MANIFEST;
     } else {
       throw new IllegalArgumentException("Unknown type: " + obj);
     }
@@ -34,7 +31,7 @@ public class CRDTSerializer extends SerializerWithStringManifest {
 
   @Override
   public Object fromBinary(byte[] obj, String manifest) throws NotSerializableException {
-    if (USER_MANIFEST.equals(manifest) || GROUP_MANIFEST.equals(manifest)) {
+    if (WRAPPER_MANIFEST.equals(manifest)) {
       try (ByteArrayInputStream bis = new ByteArrayInputStream(obj);) {
         ObjectInput in = new ObjectInputStream(bis);
         return in.readObject();
@@ -48,7 +45,7 @@ public class CRDTSerializer extends SerializerWithStringManifest {
 
   @Override
   public byte[] toBinary(Object obj) {
-    if (obj instanceof CRDTWrapper || obj instanceof GroupCRDT) {
+    if (obj instanceof CRDTWrapper) {
       try (ByteArrayOutputStream bos = new ByteArrayOutputStream();) {
         ObjectOutput out = new ObjectOutputStream(bos);
         out.writeObject(obj);

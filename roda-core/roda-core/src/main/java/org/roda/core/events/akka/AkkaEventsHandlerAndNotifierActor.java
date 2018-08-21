@@ -1,10 +1,9 @@
 package org.roda.core.events.akka;
 
-import static akka.cluster.ddata.Replicator.writeLocal;
-
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.roda.core.RodaCoreFactory;
 import org.roda.core.common.akka.Messages.EventGroupCreated;
@@ -19,7 +18,6 @@ import org.roda.core.events.EventsHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.DistributedData;
@@ -32,9 +30,13 @@ import akka.cluster.ddata.Replicator.Subscribe;
 import akka.cluster.ddata.Replicator.Update;
 import akka.cluster.ddata.Replicator.UpdateFailure;
 import akka.cluster.ddata.Replicator.UpdateSuccess;
+import akka.cluster.ddata.Replicator.WriteConsistency;
+import akka.cluster.ddata.Replicator.WriteMajority;
+import akka.persistence.RecoveryCompleted;
 import scala.Option;
+import scala.concurrent.duration.Duration;
 
-public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
+public class AkkaEventsHandlerAndNotifierActor extends akka.persistence.AbstractPersistentActor {
   private static final Logger LOGGER = LoggerFactory.getLogger(AkkaEventsHandlerAndNotifierActor.class);
 
   private final ActorRef replicator = DistributedData.get(context().system()).replicator();
@@ -45,6 +47,8 @@ public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
 
   private final Key<GSet<ObjectKey>> allObjectsKey = GSetKey.create("objects-keys");
   private Set<ObjectKey> keys = new HashSet<>();
+
+  private final WriteConsistency writeMajority = new WriteMajority(Duration.create(3, TimeUnit.SECONDS));
 
   public AkkaEventsHandlerAndNotifierActor(EventsHandler eventsHandler) {
     this.eventsHandler = eventsHandler;
@@ -60,8 +64,8 @@ public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
   @Override
   public Receive createReceive() {
     return receiveBuilder().match(Changed.class, c -> handleChanged(c))
-      .match(EventUserCreated.class, e -> handleUserCreated(e)).match(EventUserUpdated.class, e -> handleUserUpdated(e))
-      .match(EventUserDeleted.class, e -> handleUserDeleted(e))
+      .match(EventUserCreated.class, e -> persist(e, e1 -> handleUserCreated(e1)))
+      .match(EventUserUpdated.class, e -> handleUserUpdated(e)).match(EventUserDeleted.class, e -> handleUserDeleted(e))
       .match(EventGroupCreated.class, e -> handleGroupCreated(e))
       .match(EventGroupUpdated.class, e -> handleGroupUpdated(e))
       .match(EventGroupDeleted.class, e -> handleGroupDeleted(e))
@@ -72,11 +76,11 @@ public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
   }
 
   private void handleUpdateSuccess(UpdateSuccess e) {
-
+    LOGGER.info("handleUpdateSuccess '{}'", e);
   }
 
   private void handleUpdateFailure(UpdateFailure e) {
-
+    LOGGER.info("handleUpdateFailure '{}'", e);
   }
 
   private void handleChanged(Changed<?> e) {
@@ -164,26 +168,26 @@ public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
   private void putObjectInCache(String key, CRDTWrapper value) {
     ObjectKey objectKey = dataKey(key);
     if (!keys.contains(objectKey)) {
-      Update<GSet<ObjectKey>> update1 = new Update<>(allObjectsKey, GSet.create(), writeLocal(),
+      Update<GSet<ObjectKey>> update1 = new Update<>(allObjectsKey, GSet.create(), writeMajority,
         curr -> curr.add(objectKey));
       replicator.tell(update1, self());
     }
 
     // Optional<Object> ctx = Optional.of(getSender());
     Update<ORMap<String, CRDTWrapper>> update = new Update<ORMap<String, CRDTWrapper>>(dataKey(key), ORMap.create(),
-      writeLocal(), curr -> curr.put(node, key, value));
+      writeMajority, curr -> curr.put(node, key, value));
     replicator.tell(update, self());
   }
 
   private void evictObjectFromCache(String key) {
     ObjectKey objectKey = dataKey(key);
     if (!keys.contains(objectKey)) {
-      Update<GSet<ObjectKey>> update1 = new Update<>(allObjectsKey, GSet.create(), writeLocal(),
+      Update<GSet<ObjectKey>> update1 = new Update<>(allObjectsKey, GSet.create(), writeMajority,
         curr -> curr.add(objectKey));
       replicator.tell(update1, self());
     }
 
-    Update<ORMap<String, CRDTWrapper>> update = new Update<>(objectKey, ORMap.create(), writeLocal(),
+    Update<ORMap<String, CRDTWrapper>> update = new Update<>(objectKey, ORMap.create(), writeMajority,
       curr -> curr.remove(node, key));
     replicator.tell(update, self());
   }
@@ -200,4 +204,15 @@ public class AkkaEventsHandlerAndNotifierActor extends AbstractActor {
     }
   }
 
+  @Override
+  public String persistenceId() {
+    return "my-stable-persistence-id";
+  }
+
+  @Override
+  public Receive createReceiveRecover() {
+    return receiveBuilder().match(RecoveryCompleted.class, r -> {
+      LOGGER.info("Recovery completed! {}", r);
+    }).match(EventUserCreated.class, e -> handleUserCreated(e)).build();
+  }
 }

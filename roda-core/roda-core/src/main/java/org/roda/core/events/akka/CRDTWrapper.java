@@ -1,7 +1,6 @@
 package org.roda.core.events.akka;
 
 import org.roda.core.data.v2.IsRODAObject;
-import org.roda.core.data.v2.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +22,9 @@ public class CRDTWrapper extends AbstractReplicatedData<CRDTWrapper>
     this.isUpdate = isUpdate;
     this.instanceId = instanceId;
     this.setTimeinmillis(timeinmillis);
+  }
+
+  public CRDTWrapper() {
   }
 
   @Override
@@ -52,14 +54,17 @@ public class CRDTWrapper extends AbstractReplicatedData<CRDTWrapper>
 
   @Override
   public CRDTWrapper mergeData(CRDTWrapper that) {
-    if (rodaObject instanceof User) {
-      User user = (User) rodaObject;
-      User thatUser = (User) that.getRodaObject();
-      LOGGER.info("Merging ({}; {}; {}) '{}' to ({}; {}; {}) '{}'", isUpdate, instanceId, timeinmillis,
-        user.getId() + " " + user.getFullName(), that.isUpdate(), that.getInstanceId(), that.getTimeinmillis(),
-        thatUser.getId() + " " + thatUser.getFullName());
+    if (!this.instanceId.equals(that.getInstanceId()) && this.timeinmillis > that.getTimeinmillis()) {
+      LOGGER.warn("Maintaining local version: \nthis:{} \nthat:{}", this, that);
+      return this;
+    } else {
+      return that;
     }
-    return that;
   }
 
+  @Override
+  public String toString() {
+    return "CRDTWrapper [rodaObject=" + rodaObject + ", isUpdate=" + isUpdate + ", instanceId=" + instanceId
+      + ", timeinmillis=" + timeinmillis + "]";
+  }
 }

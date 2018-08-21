@@ -344,19 +344,11 @@ public class Messages {
     }
   }
 
-  public static JobStateUpdated newJobStateUpdated(Plugin<?> plugin, JOB_STATE state) {
-    return INSTANCE.new JobStateUpdated(plugin, state);
+  public static JobStateDetailsUpdated newJobStateDetailsUpdated(Plugin<?> plugin, Optional<String> stateDatails) {
+    return INSTANCE.new JobStateDetailsUpdated(plugin, stateDatails);
   }
 
-  public static JobStateUpdated newJobStateUpdated(Plugin<?> plugin, JOB_STATE state, Optional<String> stateDatails) {
-    return INSTANCE.new JobStateUpdated(plugin, state, stateDatails);
-  }
-
-  public static JobStateUpdated newJobStateUpdated(Plugin<?> plugin, JOB_STATE state, Throwable throwable) {
-    return INSTANCE.new JobStateUpdated(plugin, state, throwable);
-  }
-
-  public final class JobStateUpdated extends JobPartialUpdate {
+  public class JobStateDetailsUpdated extends JobPartialUpdate {
     private static final long serialVersionUID = 1946036502369851214L;
 
     private Plugin<?> plugin;
@@ -386,7 +378,19 @@ public class Messages {
     }
   }
 
-  public static final class JobStateUpdated extends JobStateDetailsUpdated {
+  public static JobStateUpdated newJobStateUpdated(Plugin<?> plugin, JOB_STATE state) {
+    return INSTANCE.new JobStateUpdated(plugin, state);
+  }
+
+  public static JobStateUpdated newJobStateUpdated(Plugin<?> plugin, JOB_STATE state, Optional<String> stateDatails) {
+    return INSTANCE.new JobStateUpdated(plugin, state, stateDatails);
+  }
+
+  public static JobStateUpdated newJobStateUpdated(Plugin<?> plugin, JOB_STATE state, Throwable throwable) {
+    return INSTANCE.new JobStateUpdated(plugin, state, throwable);
+  }
+
+  public class JobStateUpdated extends JobStateDetailsUpdated {
     private static final long serialVersionUID = 1946036502369851214L;
 
     private JOB_STATE state;
@@ -595,6 +599,10 @@ public class Messages {
 
   public static PluginExecuteIsDone newPluginExecuteIsDone(Plugin<?> plugin, boolean withError) {
     return INSTANCE.new PluginExecuteIsDone(plugin, withError);
+  }
+
+  public static PluginExecuteIsDone newPluginExecuteIsDone(Plugin<?> plugin, boolean withError, String errorMessage) {
+    return INSTANCE.new PluginExecuteIsDone(plugin, withError, errorMessage);
   }
 
   public class PluginExecuteIsDone extends PluginMethodIsDone {

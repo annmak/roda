@@ -210,9 +210,9 @@ public final class JsonUtils {
     return obj;
   }
 
-  public static long calculateNumberOfLines(Path logFile) {
+  public static long calculateNumberOfLines(Path file) {
     long res = 0;
-    try (InputStream is = new BufferedInputStream(Files.newInputStream(logFile))) {
+    try (InputStream is = new BufferedInputStream(Files.newInputStream(file))) {
       byte[] c = new byte[1024];
 
       int readChars = is.read(c);
