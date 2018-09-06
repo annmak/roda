@@ -86,18 +86,12 @@ public class ShowPreservationAgent extends Composite {
   }
 
   private static MyUiBinder uiBinder = GWT.create(MyUiBinder.class);
-  private static ClientMessages messages = (ClientMessages) GWT.create(ClientMessages.class);
+  private static final ClientMessages messages = GWT.create(ClientMessages.class);
 
   private static final List<String> fieldsToReturn = Arrays.asList(RodaConstants.INDEX_UUID,
     RodaConstants.PRESERVATION_AGENT_ID, RodaConstants.PRESERVATION_AGENT_NAME, RodaConstants.PRESERVATION_AGENT_TYPE,
     RodaConstants.PRESERVATION_AGENT_VERSION, RodaConstants.PRESERVATION_AGENT_NOTE,
     RodaConstants.PRESERVATION_AGENT_EXTENSION);
-
-  @UiField
-  SimplePanel itemIcon;
-
-  @UiField
-  Label itemTitle;
 
   @UiField
   Label agentId, agentName, agentType, agentVersion, agentNote, agentExtension;

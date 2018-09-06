@@ -89,12 +89,7 @@
 								<g:Label addStyleNames="h4" ui:field="reportsLabel">
 									<ui:text from='{messages.jobProcessed}' />
 								</g:Label>
-
-								<commonsearch:SearchPanel ui:field="ingestJobReportsSearchPanel" />
-								<lists:IngestJobReportList addStyleNames="searchResults" ui:field="ingestJobReports" />
-
-								<commonsearch:SearchPanel ui:field="simpleJobReportsSearchPanel" />
-								<lists:SimpleJobReportList addStyleNames="searchResults" ui:field="simpleJobReports" />
+								<commonsearch:SearchWrapper ui:field="searchWrapper" />
 							</g:FlowPanel>
 
 						</g:FlowPanel>
@@ -105,6 +100,7 @@
 			<g:FlowPanel addStyleNames="col_2 last sidebar">
 				<g:FlowPanel addStyleNames="sticky-flow">
 					<g:FlowPanel addStyleNames="sticky-padding">
+						<g:SimplePanel visible="false" ui:field="actionsSidebar" />
 						<g:FlowPanel addStyleNames="sidebar-group">
 							<g:Label addStyleNames="h4">
 								<ui:text from='{messages.sidebarActionsTitle}' />

@@ -22,6 +22,7 @@ import org.roda.wui.client.browse.bundle.DescriptiveMetadataVersionsBundle;
 import org.roda.wui.client.common.UserLogin;
 import org.roda.wui.client.common.utils.AsyncCallbackUtils;
 import org.roda.wui.client.common.utils.JavascriptUtils;
+import org.roda.wui.client.common.utils.PermissionUtils;
 import org.roda.wui.common.client.HistoryResolver;
 import org.roda.wui.common.client.tools.HistoryUtils;
 import org.roda.wui.common.client.tools.ListUtils;
@@ -92,7 +93,7 @@ public class DescriptiveMetadataHistory extends Composite {
           });
 
       } else {
-        HistoryUtils.newHistory(BrowseAIP.RESOLVER);
+        HistoryUtils.newHistory(BrowseTop.RESOLVER);
         callback.onSuccess(null);
       }
     }
@@ -100,12 +101,12 @@ public class DescriptiveMetadataHistory extends Composite {
     @Override
     public void isCurrentUserPermitted(AsyncCallback<Boolean> callback) {
       // TODO check for browse metadata history permission
-      UserLogin.getInstance().checkRoles(new HistoryResolver[] {BrowseAIP.RESOLVER}, false, callback);
+      UserLogin.getInstance().checkRoles(new HistoryResolver[] {BrowseTop.RESOLVER}, false, callback);
     }
 
     @Override
     public List<String> getHistoryPath() {
-      return ListUtils.concat(BrowseAIP.RESOLVER.getHistoryPath(), getHistoryToken());
+      return ListUtils.concat(BrowseTop.RESOLVER.getHistoryPath(), getHistoryToken());
     }
 
     @Override
@@ -175,6 +176,11 @@ public class DescriptiveMetadataHistory extends Composite {
         updatePreview();
       }
     });
+
+    PermissionUtils.bindPermission(buttonRevert, bundle.getPermissions(),
+      "org.roda.wui.api.controllers.Browser.revertDescriptiveMetadataVersion");
+    PermissionUtils.bindPermission(buttonRemove, bundle.getPermissions(),
+      "org.roda.wui.api.controllers.Browser.deleteDescriptiveMetadataVersion");
 
     Element firstElement = showXml.getElement().getFirstChildElement();
     if ("input".equalsIgnoreCase(firstElement.getTagName())) {
@@ -349,7 +355,7 @@ public class DescriptiveMetadataHistory extends Composite {
         @Override
         public void onSuccess(Void result) {
           Toast.showInfo(messages.dialogDone(), messages.versionReverted());
-          HistoryUtils.newHistory(BrowseAIP.RESOLVER, aipId);
+          HistoryUtils.newHistory(BrowseTop.RESOLVER, aipId);
         }
       });
   }
@@ -369,7 +375,7 @@ public class DescriptiveMetadataHistory extends Composite {
           Toast.showInfo(messages.dialogDone(), messages.versionDeleted());
           refresh();
           if (bundle.getVersions().isEmpty()) {
-            HistoryUtils.newHistory(BrowseAIP.RESOLVER, aipId);
+            HistoryUtils.newHistory(BrowseTop.RESOLVER, aipId);
           }
         }
       });
@@ -407,7 +413,7 @@ public class DescriptiveMetadataHistory extends Composite {
   }
 
   private void cancel() {
-    HistoryUtils.newHistory(BrowseAIP.RESOLVER, aipId);
+    HistoryUtils.newHistory(BrowseTop.RESOLVER, aipId);
   }
 
 }

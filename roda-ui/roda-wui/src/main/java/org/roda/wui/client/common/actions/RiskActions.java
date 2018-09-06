@@ -9,6 +9,7 @@ package org.roda.wui.client.common.actions;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.roda.core.data.common.RodaConstants;
@@ -19,8 +20,8 @@ import org.roda.wui.client.browse.BrowserService;
 import org.roda.wui.client.common.LastSelectedItemsSingleton;
 import org.roda.wui.client.common.actions.callbacks.ActionAsyncCallback;
 import org.roda.wui.client.common.actions.callbacks.ActionNoAsyncCallback;
-import org.roda.wui.client.common.actions.model.ActionsBundle;
-import org.roda.wui.client.common.actions.model.ActionsGroup;
+import org.roda.wui.client.common.actions.model.ActionableBundle;
+import org.roda.wui.client.common.actions.model.ActionableGroup;
 import org.roda.wui.client.common.dialogs.Dialogs;
 import org.roda.wui.client.common.lists.utils.ClientSelectedItemsUtils;
 import org.roda.wui.client.common.utils.AsyncCallbackUtils;
@@ -61,7 +62,27 @@ public class RiskActions extends AbstractActionable<IndexedRisk> {
   }
 
   public enum IndexedRiskAction implements Action<IndexedRisk> {
-    NEW, REMOVE, START_PROCESS, EDIT, REFRESH, HISTORY
+    NEW("org.roda.wui.api.controllers.Risks.createRisk"),
+    REMOVE("org.roda.wui.api.controllers.Browser.delete(IndexedRisk)"),
+    START_PROCESS("org.roda.wui.api.controllers.Jobs.createJob"),
+    EDIT("org.roda.wui.api.controllers.Browser.updateRisk"), REFRESH(),
+    HISTORY("org.roda.wui.api.controllers.Browser.retrieveRiskVersions");
+
+    private List<String> methods;
+
+    IndexedRiskAction(String... methods) {
+      this.methods = Arrays.asList(methods);
+    }
+
+    @Override
+    public List<String> getMethods() {
+      return this.methods;
+    }
+  }
+
+  @Override
+  public IndexedRiskAction actionForName(String name) {
+    return IndexedRiskAction.valueOf(name);
   }
 
   public static RiskActions get() {
@@ -74,17 +95,18 @@ public class RiskActions extends AbstractActionable<IndexedRisk> {
 
   @Override
   public boolean canAct(Action<IndexedRisk> action) {
-    return POSSIBLE_ACTIONS_WITHOUT_RISK.contains(action);
+    return hasPermissions(action) && POSSIBLE_ACTIONS_WITHOUT_RISK.contains(action);
   }
 
   @Override
   public boolean canAct(Action<IndexedRisk> action, IndexedRisk object) {
-    return POSSIBLE_ACTIONS_ON_SINGLE_RISK.contains(action) || (action.equals(IndexedRiskAction.HISTORY) && hasHistory);
+    return hasPermissions(action)
+      && (POSSIBLE_ACTIONS_ON_SINGLE_RISK.contains(action) || (action.equals(IndexedRiskAction.HISTORY) && hasHistory));
   }
 
   @Override
   public boolean canAct(Action<IndexedRisk> action, SelectedItems<IndexedRisk> objects) {
-    return POSSIBLE_ACTIONS_ON_MULTIPLE_RISKS.contains(action);
+    return hasPermissions(action) && POSSIBLE_ACTIONS_ON_MULTIPLE_RISKS.contains(action);
   }
 
   @Override
@@ -160,9 +182,9 @@ public class RiskActions extends AbstractActionable<IndexedRisk> {
 
       @Override
       public void onSuccess(final Long size) {
-        Dialogs.showConfirmDialog(messages.riskRemoveFolderConfirmDialogTitle(),
-          messages.riskRemoveSelectedConfirmDialogMessage(size), messages.riskRemoveFolderConfirmDialogCancel(),
-          messages.riskRemoveFolderConfirmDialogOk(), new ActionNoAsyncCallback<Boolean>(callback) {
+        Dialogs.showConfirmDialog(messages.riskRemoveConfirmDialogTitle(),
+          messages.riskRemoveSelectedConfirmDialogMessage(size), messages.riskRemoveConfirmDialogCancel(),
+          messages.riskRemoveConfirmDialogOk(), new ActionNoAsyncCallback<Boolean>(callback) {
 
             @Override
             public void onSuccess(Boolean confirmed) {
@@ -220,11 +242,11 @@ public class RiskActions extends AbstractActionable<IndexedRisk> {
   }
 
   @Override
-  public ActionsBundle<IndexedRisk> createActionsBundle() {
-    ActionsBundle<IndexedRisk> formatActionableBundle = new ActionsBundle<>();
+  public ActionableBundle<IndexedRisk> createActionsBundle() {
+    ActionableBundle<IndexedRisk> formatActionableBundle = new ActionableBundle<>();
 
     // MANAGEMENT
-    ActionsGroup<IndexedRisk> managementGroup = new ActionsGroup<>(messages.sidebarActionsTitle());
+    ActionableGroup<IndexedRisk> managementGroup = new ActionableGroup<>(messages.sidebarActionsTitle());
     managementGroup.addButton(messages.riskHistoryButton(), IndexedRiskAction.HISTORY, ActionImpact.NONE, "btn-clock");
     managementGroup.addButton(messages.refreshButton(), IndexedRiskAction.REFRESH, ActionImpact.UPDATED, "btn-refresh");
     managementGroup.addButton(messages.newButton(), IndexedRiskAction.NEW, ActionImpact.UPDATED, "btn-plus");
@@ -232,12 +254,11 @@ public class RiskActions extends AbstractActionable<IndexedRisk> {
     managementGroup.addButton(messages.removeButton(), IndexedRiskAction.REMOVE, ActionImpact.DESTROYED, "btn-ban");
 
     // PRESERVATION
-    ActionsGroup<IndexedRisk> preservationGroup = new ActionsGroup<>(messages.preservationTitle());
+    ActionableGroup<IndexedRisk> preservationGroup = new ActionableGroup<>(messages.preservationTitle());
     preservationGroup.addButton(messages.formatRegisterProcessButton(), IndexedRiskAction.START_PROCESS,
       ActionImpact.UPDATED, "btn-play");
 
     formatActionableBundle.addGroup(managementGroup).addGroup(preservationGroup);
-
     return formatActionableBundle;
   }
 }

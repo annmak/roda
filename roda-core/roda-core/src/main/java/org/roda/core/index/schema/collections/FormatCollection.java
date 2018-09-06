@@ -13,6 +13,7 @@ import org.roda.core.data.exceptions.GenericException;
 import org.roda.core.data.exceptions.NotFoundException;
 import org.roda.core.data.exceptions.RequestNotValidException;
 import org.roda.core.data.v2.formats.Format;
+import org.roda.core.index.IndexingAdditionalInfo;
 import org.roda.core.index.schema.AbstractSolrCollection;
 import org.roda.core.index.schema.CopyField;
 import org.roda.core.index.schema.Field;
@@ -72,7 +73,6 @@ public class FormatCollection extends AbstractSolrCollection<Format, Format> {
     fields.add(new Field(RodaConstants.FORMAT_ALTERNATIVE_DESIGNATIONS, Field.TYPE_STRING).setMultiValued(true));
     fields.add(new Field(RodaConstants.FORMAT_VERSIONS, Field.TYPE_STRING).setMultiValued(true));
 
-    fields.add(SolrCollection.getSearchField());
     fields.add(SolrCollection.getSortFieldOf(RodaConstants.FORMAT_NAME));
 
     return fields;
@@ -85,11 +85,10 @@ public class FormatCollection extends AbstractSolrCollection<Format, Format> {
   }
 
   @Override
-  public SolrInputDocument toSolrDocument(Format format, Map<String, Object> preCalculatedFields,
-    Map<String, Object> accumulators, Flags... flags)
+  public SolrInputDocument toSolrDocument(Format format, IndexingAdditionalInfo info)
     throws RequestNotValidException, GenericException, NotFoundException, AuthorizationDeniedException {
 
-    SolrInputDocument doc = super.toSolrDocument(format, preCalculatedFields, accumulators, flags);
+    SolrInputDocument doc = super.toSolrDocument(format, info);
 
     doc.addField(RodaConstants.FORMAT_NAME, format.getName());
     doc.addField(RodaConstants.FORMAT_DEFINITION, format.getDefinition());

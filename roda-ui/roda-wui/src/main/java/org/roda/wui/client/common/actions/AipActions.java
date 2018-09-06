@@ -22,8 +22,9 @@ import org.roda.core.data.v2.index.select.SelectedItemsFilter;
 import org.roda.core.data.v2.index.select.SelectedItemsList;
 import org.roda.core.data.v2.ip.AIPState;
 import org.roda.core.data.v2.ip.IndexedAIP;
+import org.roda.core.data.v2.ip.Permissions;
 import org.roda.core.data.v2.jobs.Job;
-import org.roda.wui.client.browse.BrowseAIP;
+import org.roda.wui.client.browse.BrowseTop;
 import org.roda.wui.client.browse.BrowserService;
 import org.roda.wui.client.browse.CreateDescriptiveMetadata;
 import org.roda.wui.client.browse.EditPermissions;
@@ -31,8 +32,8 @@ import org.roda.wui.client.common.LastSelectedItemsSingleton;
 import org.roda.wui.client.common.actions.callbacks.ActionAsyncCallback;
 import org.roda.wui.client.common.actions.callbacks.ActionLoadingAsyncCallback;
 import org.roda.wui.client.common.actions.callbacks.ActionNoAsyncCallback;
-import org.roda.wui.client.common.actions.model.ActionsBundle;
-import org.roda.wui.client.common.actions.model.ActionsGroup;
+import org.roda.wui.client.common.actions.model.ActionableBundle;
+import org.roda.wui.client.common.actions.model.ActionableGroup;
 import org.roda.wui.client.common.dialogs.Dialogs;
 import org.roda.wui.client.common.dialogs.RepresentationDialogs;
 import org.roda.wui.client.common.dialogs.SelectAipDialog;
@@ -64,11 +65,14 @@ public class AipActions extends AbstractActionable<IndexedAIP> {
   public static final String NO_AIP_PARENT = null;
   public static final AIPState NO_AIP_STATE = null;
 
-  private static final AipActions GENERAL_INSTANCE = new AipActions(NO_AIP_PARENT, NO_AIP_STATE);
+  private static final AipActions GENERAL_INSTANCE = new AipActions(NO_AIP_PARENT, NO_AIP_STATE, null);
   private static final ClientMessages messages = GWT.create(ClientMessages.class);
 
-  private static final Set<AipAction> POSSIBLE_ACTIONS_ON_NO_AIP = new HashSet<>(
-    Arrays.asList(AipAction.NEW_CHILD_AIP));
+  private static final Set<AipAction> POSSIBLE_ACTIONS_ON_NO_AIP_TOP = new HashSet<>(
+    Arrays.asList(AipAction.NEW_CHILD_AIP_TOP));
+
+  private static final Set<AipAction> POSSIBLE_ACTIONS_ON_NO_AIP_BELOW = new HashSet<>(
+    Arrays.asList(AipAction.NEW_CHILD_AIP_BELOW));
 
   private static final Set<AipAction> POSSIBLE_ACTIONS_ON_SINGLE_AIP = new HashSet<>(
     Arrays.asList(AipAction.DOWNLOAD, AipAction.MOVE_IN_HIERARCHY, AipAction.UPDATE_PERMISSIONS, AipAction.REMOVE,
@@ -83,58 +87,97 @@ public class AipActions extends AbstractActionable<IndexedAIP> {
 
   private final String parentAipId;
   private final AIPState parentAipState;
+  private final Permissions permissions;
 
-  private AipActions(String parentAipId, AIPState parentAipState) {
+  private AipActions(String parentAipId, AIPState parentAipState, Permissions permissions) {
     this.parentAipId = parentAipId;
     this.parentAipState = parentAipState;
+    this.permissions = permissions;
   }
 
-  public enum AipAction implements Actionable.Action<IndexedAIP> {
-    NEW_CHILD_AIP, DOWNLOAD, MOVE_IN_HIERARCHY, UPDATE_PERMISSIONS, REMOVE, NEW_PROCESS, DOWNLOAD_EVENTS,
-    APPRAISAL_ACCEPT, APPRAISAL_REJECT, DOWNLOAD_DOCUMENTATION, CHANGE_TYPE
+  public enum AipAction implements Action<IndexedAIP> {
+    NEW_CHILD_AIP_BELOW("org.roda.wui.api.controllers.Browser.createAIPBelow"),
+    NEW_CHILD_AIP_TOP("org.roda.wui.api.controllers.Browser.createAIPTop"), DOWNLOAD(),
+    MOVE_IN_HIERARCHY("org.roda.wui.api.controllers.Browser.moveAIPInHierarchy"),
+    UPDATE_PERMISSIONS("org.roda.wui.api.controllers.Browser.updateAIPPermissions"),
+    REMOVE("org.roda.wui.api.controllers.Browser.delete(IndexedAIP)"),
+    NEW_PROCESS("org.roda.wui.api.controllers.Jobs.createJob"), DOWNLOAD_EVENTS(),
+    APPRAISAL_ACCEPT("org.roda.wui.api.controllers.Browser.appraisal"),
+    APPRAISAL_REJECT("org.roda.wui.api.controllers.Browser.appraisal"), DOWNLOAD_DOCUMENTATION(),
+    CHANGE_TYPE("org.roda.wui.api.controllers.Browser.changeAIPType");
+
+    private List<String> methods;
+
+    AipAction(String... methods) {
+      this.methods = Arrays.asList(methods);
+    }
+
+    @Override
+    public List<String> getMethods() {
+      return this.methods;
+    }
+  }
+
+  @Override
+  public AipAction actionForName(String name) {
+    return AipAction.valueOf(name);
   }
 
   public static AipActions get() {
     return GENERAL_INSTANCE;
   }
 
-  public static AipActions get(String parentAipId, AIPState parentAipState) {
-    return new AipActions(parentAipId, parentAipState);
+  public static AipActions get(String parentAipId, AIPState parentAipState, Permissions permissions) {
+    return new AipActions(parentAipId, parentAipState, permissions);
   }
 
-  public boolean canAct(Actionable.Action<IndexedAIP> action) {
-    return POSSIBLE_ACTIONS_ON_NO_AIP.contains(action);
+  @Override
+  public boolean canAct(Action<IndexedAIP> action) {
+    if (!AIPState.UNDER_APPRAISAL.equals(parentAipState)) {
+      if (parentAipId == NO_AIP_PARENT) {
+        return hasPermissions(action, permissions) && POSSIBLE_ACTIONS_ON_NO_AIP_TOP.contains(action);
+      } else {
+        return hasPermissions(action, permissions) && POSSIBLE_ACTIONS_ON_NO_AIP_BELOW.contains(action);
+      }
+    } else {
+      return false;
+    }
   }
 
   @Override
   public boolean canAct(Action<IndexedAIP> action, IndexedAIP aip) {
-    boolean canAct;
     if (aip == NO_AIP_OBJECT) {
-      canAct = POSSIBLE_ACTIONS_ON_NO_AIP.contains(action);
+      return hasPermissions(action, permissions) && POSSIBLE_ACTIONS_ON_NO_AIP_BELOW.contains(action);
+    } else if (AIPState.UNDER_APPRAISAL.equals(aip.getState()) && AIPState.UNDER_APPRAISAL.equals(parentAipState)
+      && parentAipId == NO_AIP_PARENT) {
+      return hasPermissions(action, aip.getPermissions()) && APPRAISAL_ACTIONS.contains(action);
     } else if (AIPState.UNDER_APPRAISAL.equals(aip.getState())) {
-      canAct = POSSIBLE_ACTIONS_ON_SINGLE_AIP.contains(action) || APPRAISAL_ACTIONS.contains(action);
+      return hasPermissions(action, aip.getPermissions())
+        && (POSSIBLE_ACTIONS_ON_SINGLE_AIP.contains(action) || APPRAISAL_ACTIONS.contains(action));
     } else {
-      canAct = POSSIBLE_ACTIONS_ON_SINGLE_AIP.contains(action);
+      return hasPermissions(action, aip.getPermissions()) && POSSIBLE_ACTIONS_ON_SINGLE_AIP.contains(action);
     }
-
-    return canAct;
   }
 
   @Override
   public boolean canAct(Action<IndexedAIP> action, SelectedItems<IndexedAIP> objects) {
-    boolean canAct;
-    if (AIPState.UNDER_APPRAISAL.equals(parentAipState)) {
-      canAct = POSSIBLE_ACTIONS_ON_MULTIPLE_AIPS.contains(action) || APPRAISAL_ACTIONS.contains(action);
-    } else {
-      canAct = POSSIBLE_ACTIONS_ON_MULTIPLE_AIPS.contains(action);
+    boolean canAct = false;
+
+    if (hasPermissions(action, permissions)) {
+      if (AIPState.UNDER_APPRAISAL.equals(parentAipState)) {
+        canAct = (parentAipId != NO_AIP_PARENT && POSSIBLE_ACTIONS_ON_MULTIPLE_AIPS.contains(action))
+          || APPRAISAL_ACTIONS.contains(action);
+      } else {
+        canAct = POSSIBLE_ACTIONS_ON_MULTIPLE_AIPS.contains(action);
+      }
     }
 
     return canAct;
   }
 
   @Override
-  public void act(Actionable.Action<IndexedAIP> action, AsyncCallback<ActionImpact> callback) {
-    if (AipAction.NEW_CHILD_AIP.equals(action)) {
+  public void act(Action<IndexedAIP> action, AsyncCallback<ActionImpact> callback) {
+    if (AipAction.NEW_CHILD_AIP_TOP.equals(action) || AipAction.NEW_CHILD_AIP_BELOW.equals(action)) {
       newChildAip(callback);
     } else {
       unsupportedAction(action, callback);
@@ -142,7 +185,7 @@ public class AipActions extends AbstractActionable<IndexedAIP> {
   }
 
   @Override
-  public void act(Actionable.Action<IndexedAIP> action, IndexedAIP aip, AsyncCallback<ActionImpact> callback) {
+  public void act(Action<IndexedAIP> action, IndexedAIP aip, AsyncCallback<ActionImpact> callback) {
     if (AipAction.DOWNLOAD.equals(action)) {
       download(aip, callback);
     } else if (AipAction.MOVE_IN_HIERARCHY.equals(action)) {
@@ -169,8 +212,7 @@ public class AipActions extends AbstractActionable<IndexedAIP> {
   }
 
   @Override
-  public void act(Actionable.Action<IndexedAIP> action, SelectedItems<IndexedAIP> aips,
-    AsyncCallback<ActionImpact> callback) {
+  public void act(Action<IndexedAIP> action, SelectedItems<IndexedAIP> aips, AsyncCallback<ActionImpact> callback) {
     if (AipAction.MOVE_IN_HIERARCHY.equals(action)) {
       move(aips, callback);
     } else if (AipAction.UPDATE_PERMISSIONS.equals(action)) {
@@ -224,7 +266,7 @@ public class AipActions extends AbstractActionable<IndexedAIP> {
             Filter filter = new Filter(new NotSimpleFilterParameter(RodaConstants.INDEX_UUID, aipId));
             SelectAipDialog selectAipDialog = new SelectAipDialog(
               messages.moveItemTitle() + " " + (StringUtils.isNotBlank(aip.getTitle()) ? aip.getTitle() : aip.getId()),
-              filter, justActive, false);
+              filter, justActive);
             selectAipDialog.setEmptyParentButtonVisible(true);
             selectAipDialog.setSingleSelectionMode();
             selectAipDialog.showAndCenter();
@@ -305,8 +347,7 @@ public class AipActions extends AbstractActionable<IndexedAIP> {
                   filter.add(new NotSimpleFilterParameter(RodaConstants.INDEX_UUID, parentAipId));
                 }
 
-                SelectAipDialog selectAipDialog = new SelectAipDialog(messages.moveItemTitle(), filter, justActive,
-                  true);
+                SelectAipDialog selectAipDialog = new SelectAipDialog(messages.moveItemTitle(), filter, justActive);
                 selectAipDialog.setEmptyParentButtonVisible(parentAipId != null);
                 selectAipDialog.showAndCenter();
                 if (counter > 0 && counter <= RodaConstants.DIALOG_FILTER_LIMIT_NUMBER) {
@@ -404,9 +445,9 @@ public class AipActions extends AbstractActionable<IndexedAIP> {
                               @Override
                               public void run() {
                                 if (parentId != null) {
-                                  HistoryUtils.newHistory(BrowseAIP.RESOLVER, parentId);
+                                  HistoryUtils.newHistory(BrowseTop.RESOLVER, parentId);
                                 } else {
-                                  HistoryUtils.newHistory(BrowseAIP.RESOLVER);
+                                  HistoryUtils.newHistory(BrowseTop.RESOLVER);
                                 }
                                 callback.onFailure(caught);
                               }
@@ -635,12 +676,15 @@ public class AipActions extends AbstractActionable<IndexedAIP> {
   }
 
   @Override
-  public ActionsBundle<IndexedAIP> createActionsBundle() {
-    ActionsBundle<IndexedAIP> aipActionsBundle = new ActionsBundle<>();
+  public ActionableBundle<IndexedAIP> createActionsBundle() {
+    ActionableBundle<IndexedAIP> aipActionableBundle = new ActionableBundle<>();
 
     // MANAGEMENT
-    ActionsGroup<IndexedAIP> managementGroup = new ActionsGroup<>(messages.intellectualEntity());
-    managementGroup.addButton(messages.newArchivalPackage(), AipAction.NEW_CHILD_AIP, ActionImpact.UPDATED, "btn-plus");
+    ActionableGroup<IndexedAIP> managementGroup = new ActionableGroup<>(messages.intellectualEntity());
+    managementGroup.addButton(messages.newArchivalPackage(), AipAction.NEW_CHILD_AIP_TOP, ActionImpact.UPDATED,
+      "btn-plus-circle");
+    managementGroup.addButton(messages.newArchivalPackage(), AipAction.NEW_CHILD_AIP_BELOW, ActionImpact.UPDATED,
+      "btn-plus-circle");
     managementGroup.addButton(messages.changeTypeButton(), AipAction.CHANGE_TYPE, ActionImpact.UPDATED, "btn-edit");
     managementGroup.addButton(messages.moveArchivalPackage(), AipAction.MOVE_IN_HIERARCHY, ActionImpact.UPDATED,
       "btn-edit");
@@ -650,21 +694,20 @@ public class AipActions extends AbstractActionable<IndexedAIP> {
     managementGroup.addButton(messages.downloadButton(), AipAction.DOWNLOAD, ActionImpact.NONE, "btn-download");
 
     // PRESERVATION
-    ActionsGroup<IndexedAIP> preservationGroup = new ActionsGroup<>(messages.preservationTitle());
+    ActionableGroup<IndexedAIP> preservationGroup = new ActionableGroup<>(messages.preservationTitle());
     preservationGroup.addButton(messages.newProcessPreservation(), AipAction.NEW_PROCESS, ActionImpact.UPDATED,
       "btn-play");
     preservationGroup.addButton(messages.preservationEventsDownloadButton(), AipAction.DOWNLOAD_EVENTS,
       ActionImpact.NONE, "btn-download");
 
     // APPRAISAL
-    ActionsGroup<IndexedAIP> appraisalGroup = new ActionsGroup<>(messages.appraisalTitle());
+    ActionableGroup<IndexedAIP> appraisalGroup = new ActionableGroup<>(messages.appraisalTitle());
     appraisalGroup.addButton(messages.appraisalAccept(), AipAction.APPRAISAL_ACCEPT, ActionImpact.UPDATED, "btn-play");
     appraisalGroup.addButton(messages.appraisalReject(), AipAction.APPRAISAL_REJECT, ActionImpact.DESTROYED, "btn-ban");
     appraisalGroup.addButton(messages.downloadDocumentation(), AipAction.DOWNLOAD_DOCUMENTATION, ActionImpact.NONE,
       "btn-download");
 
-    aipActionsBundle.addGroup(managementGroup).addGroup(preservationGroup).addGroup(appraisalGroup);
-
-    return aipActionsBundle;
+    aipActionableBundle.addGroup(managementGroup).addGroup(preservationGroup).addGroup(appraisalGroup);
+    return aipActionableBundle;
   }
 }

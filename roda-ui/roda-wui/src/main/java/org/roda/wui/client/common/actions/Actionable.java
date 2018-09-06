@@ -7,21 +7,23 @@
  */
 package org.roda.wui.client.common.actions;
 
+import java.util.List;
+
 import org.roda.core.data.v2.index.IsIndexed;
 import org.roda.core.data.v2.index.select.SelectedItems;
+import org.roda.wui.client.common.actions.model.ActionableBundle;
 import org.roda.wui.client.common.actions.model.ActionableObject;
-import org.roda.wui.client.common.actions.model.ActionsBundle;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
 public interface Actionable<T extends IsIndexed> {
 
-  static interface Action<T> {
-
+  interface Action<T> {
+    List<String> getMethods();
   }
 
-  public enum ActionImpact {
-    NONE, UPDATED, DESTROYED;
+  enum ActionImpact {
+    NONE, UPDATED, DESTROYED
   }
 
   // Generic, implemented in AbstractActionable
@@ -57,5 +59,7 @@ public interface Actionable<T extends IsIndexed> {
   void act(Action<T> action, SelectedItems<T> objects, AsyncCallback<ActionImpact> callback);
 
   // Layout
-  ActionsBundle<T> createActionsBundle();
+  ActionableBundle<T> createActionsBundle();
+
+  Action<T> actionForName(String name);
 }

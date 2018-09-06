@@ -9,6 +9,8 @@ package org.roda.wui.client.common.actions;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.roda.core.data.common.RodaConstants;
@@ -16,15 +18,16 @@ import org.roda.core.data.v2.index.select.SelectedItems;
 import org.roda.core.data.v2.ip.AIPLink;
 import org.roda.core.data.v2.ip.FileLink;
 import org.roda.core.data.v2.ip.IndexedDIP;
+import org.roda.core.data.v2.ip.Permissions;
 import org.roda.core.data.v2.ip.RepresentationLink;
-import org.roda.wui.client.browse.BrowseAIP;
+import org.roda.wui.client.browse.BrowseTop;
 import org.roda.wui.client.browse.BrowserService;
 import org.roda.wui.client.browse.EditPermissions;
 import org.roda.wui.client.common.LastSelectedItemsSingleton;
 import org.roda.wui.client.common.actions.callbacks.ActionLoadingAsyncCallback;
 import org.roda.wui.client.common.actions.callbacks.ActionNoAsyncCallback;
-import org.roda.wui.client.common.actions.model.ActionsBundle;
-import org.roda.wui.client.common.actions.model.ActionsGroup;
+import org.roda.wui.client.common.actions.model.ActionableBundle;
+import org.roda.wui.client.common.actions.model.ActionableGroup;
 import org.roda.wui.client.common.dialogs.Dialogs;
 import org.roda.wui.client.process.CreateSelectedJob;
 import org.roda.wui.common.client.tools.HistoryUtils;
@@ -40,7 +43,7 @@ import config.i18n.client.ClientMessages;
 
 public class DisseminationActions extends AbstractActionable<IndexedDIP> {
 
-  private static final DisseminationActions INSTANCE = new DisseminationActions();
+  private static final DisseminationActions INSTANCE = new DisseminationActions(null);
   private static final ClientMessages messages = GWT.create(ClientMessages.class);
 
   private static final Set<DisseminationAction> POSSIBLE_ACTIONS_ON_SINGLE_DISSEMINATION = new HashSet<>(
@@ -49,30 +52,54 @@ public class DisseminationActions extends AbstractActionable<IndexedDIP> {
   private static final Set<DisseminationAction> POSSIBLE_ACTIONS_ON_MULTIPLE_DISSEMINATIONS = new HashSet<>(
     Arrays.asList(DisseminationAction.REMOVE, DisseminationAction.NEW_PROCESS, DisseminationAction.UPDATE_PERMISSIONS));
 
-  private DisseminationActions() {
+  private final Permissions permissions;
+
+  private DisseminationActions(Permissions permissions) {
+    this.permissions = permissions;
   }
 
-  public enum DisseminationAction implements Actionable.Action<IndexedDIP> {
-    DOWNLOAD, REMOVE, NEW_PROCESS, UPDATE_PERMISSIONS;
+  public enum DisseminationAction implements Action<IndexedDIP> {
+    DOWNLOAD(), REMOVE("org.roda.wui.api.controllers.Browser.delete(IndexedDIP)"),
+    NEW_PROCESS("org.roda.wui.api.controllers.Jobs.createJob"),
+    UPDATE_PERMISSIONS("org.roda.wui.api.controllers.Browser.updateDIPPermissions");
+
+    private List<String> methods;
+
+    DisseminationAction(String... methods) {
+      this.methods = Arrays.asList(methods);
+    }
+
+    @Override
+    public List<String> getMethods() {
+      return this.methods;
+    }
+  }
+
+  @Override
+  public DisseminationAction actionForName(String name) {
+    return DisseminationAction.valueOf(name);
   }
 
   public static DisseminationActions get() {
     return INSTANCE;
   }
 
+  public static DisseminationActions get(Permissions permissions) {
+    return new DisseminationActions(permissions);
+  }
+
   @Override
   public boolean canAct(Action<IndexedDIP> action, IndexedDIP dip) {
-    return POSSIBLE_ACTIONS_ON_SINGLE_DISSEMINATION.contains(action);
+    return hasPermissions(action, dip.getPermissions()) && POSSIBLE_ACTIONS_ON_SINGLE_DISSEMINATION.contains(action);
   }
 
   @Override
   public boolean canAct(Action<IndexedDIP> action, SelectedItems<IndexedDIP> selectedItems) {
-    return POSSIBLE_ACTIONS_ON_MULTIPLE_DISSEMINATIONS.contains(action);
+    return hasPermissions(action, permissions) && POSSIBLE_ACTIONS_ON_MULTIPLE_DISSEMINATIONS.contains(action);
   }
 
   @Override
-  public void act(Actionable.Action<IndexedDIP> action, IndexedDIP dissemination,
-    AsyncCallback<ActionImpact> callback) {
+  public void act(Action<IndexedDIP> action, IndexedDIP dissemination, AsyncCallback<ActionImpact> callback) {
     if (DisseminationAction.DOWNLOAD.equals(action)) {
       download(dissemination, callback);
     } else if (DisseminationAction.REMOVE.equals(action)) {
@@ -90,7 +117,7 @@ public class DisseminationActions extends AbstractActionable<IndexedDIP> {
    * Act on multiple files from different representations
    */
   @Override
-  public void act(Actionable.Action<IndexedDIP> action, SelectedItems<IndexedDIP> selectedItems,
+  public void act(Action<IndexedDIP> action, SelectedItems<IndexedDIP> selectedItems,
     AsyncCallback<ActionImpact> callback) {
     if (DisseminationAction.REMOVE.equals(action)) {
       remove(selectedItems, callback);
@@ -185,7 +212,7 @@ public class DisseminationActions extends AbstractActionable<IndexedDIP> {
   private void updatePermissions(IndexedDIP dip, AsyncCallback<ActionImpact> callback) {
     LastSelectedItemsSingleton selectedItems = LastSelectedItemsSingleton.getInstance();
     selectedItems.setLastHistory(HistoryUtils.getCurrentHistoryPath());
-    HistoryUtils.newHistory(BrowseAIP.RESOLVER, EditPermissions.DIP_RESOLVER.getHistoryToken(), dip.getId());
+    HistoryUtils.newHistory(BrowseTop.RESOLVER, EditPermissions.DIP_RESOLVER.getHistoryToken(), dip.getId());
     callback.onSuccess(ActionImpact.UPDATED);
   }
 
@@ -193,16 +220,17 @@ public class DisseminationActions extends AbstractActionable<IndexedDIP> {
     LastSelectedItemsSingleton selectedItems = LastSelectedItemsSingleton.getInstance();
     selectedItems.setLastHistory(HistoryUtils.getCurrentHistoryPath());
     LastSelectedItemsSingleton.getInstance().setSelectedItems(dips);
-    HistoryUtils.newHistory(BrowseAIP.RESOLVER, EditPermissions.DIP_RESOLVER.getHistoryToken());
+    HistoryUtils.newHistory(BrowseTop.RESOLVER, EditPermissions.DIP_RESOLVER.getHistoryToken());
     callback.onSuccess(ActionImpact.UPDATED);
   }
 
   @Override
-  public ActionsBundle<IndexedDIP> createActionsBundle() {
-    ActionsBundle<IndexedDIP> dipActionsBundle = new ActionsBundle<>();
+  public ActionableBundle<IndexedDIP> createActionsBundle() {
+    ActionableBundle<IndexedDIP> dipActionableBundle = new ActionableBundle<>();
 
     // MANAGEMENT
-    ActionsGroup<IndexedDIP> managementGroup = new ActionsGroup<>(messages.viewRepresentationFileDisseminationTitle());
+    ActionableGroup<IndexedDIP> managementGroup = new ActionableGroup<>(
+      messages.viewRepresentationFileDisseminationTitle());
     managementGroup.addButton(messages.downloadButton(), DisseminationAction.DOWNLOAD, ActionImpact.NONE,
       "btn-download");
     managementGroup.addButton(messages.removeButton(), DisseminationAction.REMOVE, ActionImpact.DESTROYED, "btn-ban");
@@ -210,12 +238,11 @@ public class DisseminationActions extends AbstractActionable<IndexedDIP> {
       ActionImpact.UPDATED, "btn-edit");
 
     // PRESERVATION
-    ActionsGroup<IndexedDIP> preservationGroup = new ActionsGroup<>(messages.preservationTitle());
+    ActionableGroup<IndexedDIP> preservationGroup = new ActionableGroup<>(messages.preservationTitle());
     preservationGroup.addButton(messages.newProcessPreservation(), DisseminationAction.NEW_PROCESS,
       ActionImpact.UPDATED, "btn-play");
 
-    dipActionsBundle.addGroup(managementGroup).addGroup(preservationGroup);
-
-    return dipActionsBundle;
+    dipActionableBundle.addGroup(managementGroup).addGroup(preservationGroup);
+    return dipActionableBundle;
   }
 }

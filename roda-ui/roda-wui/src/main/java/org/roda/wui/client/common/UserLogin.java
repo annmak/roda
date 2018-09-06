@@ -14,9 +14,15 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
+import java.util.Set;
 import java.util.Vector;
 
+import com.google.common.collect.Sets;
+import org.roda.core.data.v2.index.select.SelectedItems;
+import org.roda.core.data.v2.ip.HasPermissions;
+import org.roda.core.data.v2.ip.Permissions;
 import org.roda.core.data.v2.user.Group;
 import org.roda.core.data.v2.user.RODAMember;
 import org.roda.core.data.v2.user.User;
@@ -46,7 +52,7 @@ import config.i18n.client.ClientMessages;
 public class UserLogin {
 
   private static final ClientLogger logger = new ClientLogger(UserLogin.class.getName());
-  private static final ClientMessages messages = (ClientMessages) GWT.create(ClientMessages.class);
+  private static final ClientMessages messages = GWT.create(ClientMessages.class);
 
   private static UserLoginServiceAsync userLoginService;
   private static UserLogin instance = null;
@@ -312,7 +318,7 @@ public class UserLogin {
    */
   public void checkRole(final HistoryResolver res, final AsyncCallback<Boolean> callback) {
     String historyKey = StringUtils.join(res.getHistoryPath(), HistoryUtils.HISTORY_PERMISSION_SEP);
-    String propertyName = "ui.menu." + historyKey + ".role";
+    final String propertyName = "ui.menu." + historyKey + ".role";
     UserLogin.getRodaProperty(propertyName, new AsyncCallback<String>() {
 
       @Override
@@ -322,24 +328,27 @@ public class UserLogin {
 
       @Override
       public void onSuccess(final String role) {
-        if (StringUtils.isBlank(role)) {
-          callback.onSuccess(Boolean.TRUE);
-        } else {
-          getAuthenticatedUser(new AsyncCallback<User>() {
-            @Override
-            public void onFailure(Throwable caught) {
-              callback.onFailure(caught);
-            }
-
-            @Override
-            public void onSuccess(User authUser) {
-              callback.onSuccess(authUser.hasRole(role));
-            }
-          });
-        }
+        checkRole(role, callback);
       }
-
     });
+  }
+
+  public void checkRole(final String role, final AsyncCallback<Boolean> callback) {
+    if (StringUtils.isBlank(role)) {
+      callback.onSuccess(Boolean.TRUE);
+    } else {
+      getAuthenticatedUser(new AsyncCallback<User>() {
+        @Override
+        public void onFailure(Throwable caught) {
+          callback.onFailure(caught);
+        }
+
+        @Override
+        public void onSuccess(User authUser) {
+          callback.onSuccess(authUser.hasRole(role));
+        }
+      });
+    }
   }
 
   /**
@@ -414,5 +423,9 @@ public class UserLogin {
 
   public void updateLoggedUser(User u) {
     getUserRequest.setCached(u);
+  }
+
+  public Optional<User> getCachedUser() {
+    return getUserRequest.getCached();
   }
 }

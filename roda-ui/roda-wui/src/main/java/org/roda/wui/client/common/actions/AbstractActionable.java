@@ -8,13 +8,22 @@
 package org.roda.wui.client.common.actions;
 
 import java.util.Collections;
+import java.util.Optional;
 
+import com.google.gwt.core.client.GWT;
 import org.roda.core.data.exceptions.RequestNotValidException;
 import org.roda.core.data.v2.index.IsIndexed;
 import org.roda.core.data.v2.index.select.SelectedItems;
 import org.roda.core.data.v2.index.select.SelectedItemsList;
+import org.roda.core.data.v2.ip.HasPermissions;
+import org.roda.core.data.v2.ip.Permissions;
+import org.roda.core.data.v2.ip.Permissions.PermissionType;
+import org.roda.core.data.v2.user.User;
 import org.roda.wui.client.common.NoAsyncCallback;
+import org.roda.wui.client.common.UserLogin;
 import org.roda.wui.client.common.actions.model.ActionableObject;
+import org.roda.wui.client.common.utils.PermissionUtils;
+import org.roda.wui.common.client.tools.ConfigurationManager;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
@@ -122,5 +131,13 @@ public abstract class AbstractActionable<T extends IsIndexed> implements Actiona
   public void act(Action<T> action, SelectedItems<T> objects, AsyncCallback<ActionImpact> callback) {
     // by default the actionable can not act
     unsupportedAction(action, callback);
+  }
+
+  public boolean hasPermissions(Action<T> action) {
+    return hasPermissions(action, null);
+  }
+
+  public boolean hasPermissions(Action<T> action, Permissions permissions) {
+    return PermissionUtils.hasPermissions(action.getMethods(), permissions);
   }
 }

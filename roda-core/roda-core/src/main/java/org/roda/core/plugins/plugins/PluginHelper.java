@@ -83,7 +83,7 @@ import org.roda.core.model.LiteRODAObjectFactory;
 import org.roda.core.model.ModelService;
 import org.roda.core.plugins.Plugin;
 import org.roda.core.plugins.PluginException;
-import org.roda.core.plugins.RODAObjectProcessingLogic;
+import org.roda.core.plugins.RODAObjectProcessingLogicNew;
 import org.roda.core.plugins.RODAObjectsProcessingLogic;
 import org.roda.core.plugins.RODAProcessingLogic;
 import org.roda.core.plugins.orchestrate.IngestJobPluginInfo;
@@ -133,6 +133,7 @@ public final class PluginHelper {
     List<LiteOptionalWithCause> liteList, boolean autoLocking) throws PluginException {
     Report report = PluginHelper.initPluginReport(plugin);
     List<T> list = new ArrayList<>();
+    Throwable exceptionOccurred = null;
 
     try {
       JobPluginInfo jobPluginInfo = PluginHelper.getInitialJobInformation(plugin, liteList.size());
@@ -143,12 +144,21 @@ public final class PluginHelper {
 
       try {
         objectsLogic.process(index, model, storage, report, job, jobPluginInfo, plugin, list);
-      } catch (Exception e) {
+      } catch (Throwable e) {
         LOGGER.error("Unexpected exception during 'objectsLogic' execution", e);
+        jobPluginInfo.setSourceObjectsProcessedWithFailure(
+          jobPluginInfo.getSourceObjectsCount() - jobPluginInfo.getSourceObjectsProcessedWithSuccess());
+        exceptionOccurred = e;
       }
 
       jobPluginInfo.finalizeInfo();
       PluginHelper.updateJobInformationAsync(plugin, jobPluginInfo);
+
+      if (exceptionOccurred != null) {
+        // 20180822 hsilva: this is required in order to finalize info (code
+        // above) & let orchestrator handle this throwable correctly
+        throw new PluginException("A plugin exception has occurred", exceptionOccurred);
+      }
     } catch (JobException | AuthorizationDeniedException | RequestNotValidException | GenericException
       | NotFoundException e) {
       throw new PluginException("A job exception has occurred", e);
@@ -167,17 +177,18 @@ public final class PluginHelper {
   }
 
   public static <T extends IsRODAObject> Report processObjects(Plugin<T> plugin, RODAProcessingLogic<T> beforeLogic,
-    RODAObjectProcessingLogic<T> perObjectLogic, RODAProcessingLogic<T> afterLogic, IndexService index,
+    RODAObjectProcessingLogicNew<T> perObjectLogic, RODAProcessingLogic<T> afterLogic, IndexService index,
     ModelService model, StorageService storage, List<LiteOptionalWithCause> liteList) throws PluginException {
     return processObjects(plugin, beforeLogic, perObjectLogic, afterLogic, index, model, storage, liteList, true);
   }
 
   public static <T extends IsRODAObject> Report processObjects(Plugin<T> plugin, RODAProcessingLogic<T> beforeLogic,
-    RODAObjectProcessingLogic<T> perObjectLogic, RODAProcessingLogic<T> afterLogic, IndexService index,
+    RODAObjectProcessingLogicNew<T> perObjectLogic, RODAProcessingLogic<T> afterLogic, IndexService index,
     ModelService model, StorageService storage, List<LiteOptionalWithCause> liteList, boolean autoLocking)
     throws PluginException {
     Report report = PluginHelper.initPluginReport(plugin);
     List<T> list = new ArrayList<>();
+    Throwable exceptionOccurred = null;
 
     try {
       JobPluginInfo jobPluginInfo = PluginHelper.getInitialJobInformation(plugin, liteList.size());
@@ -189,29 +200,48 @@ public final class PluginHelper {
       if (beforeLogic != null) {
         try {
           beforeLogic.process(index, model, storage, report, job, jobPluginInfo, plugin);
-        } catch (Exception e) {
+        } catch (Throwable e) {
           LOGGER.error("Unexpected exception during 'beforeLogic' execution", e);
+          exceptionOccurred = e;
         }
       }
 
-      for (T object : list) {
+      if (exceptionOccurred == null) {
+        // 20180822 hsilva: try/catch is wrapping the for cycle as otherwise it
+        // would be very troublesome to handle the exceptions properly as we
+        // need to pass them to the orchestrator (via throw)
         try {
-          perObjectLogic.process(index, model, storage, report, job, jobPluginInfo, plugin, object);
-        } catch (Exception e) {
+          for (T object : list) {
+            perObjectLogic.process(index, model, storage, report, job, jobPluginInfo, plugin, object);
+          }
+        } catch (Throwable e) {
           LOGGER.error("Unexpected exception during 'perObjectLogic' execution", e);
+          exceptionOccurred = e;
         }
       }
 
-      if (afterLogic != null) {
+      if (afterLogic != null && exceptionOccurred == null) {
         try {
           afterLogic.process(index, model, storage, report, job, jobPluginInfo, plugin);
-        } catch (Exception e) {
+        } catch (Throwable e) {
           LOGGER.error("Unexpected exception during 'afterLogic' execution", e);
+          exceptionOccurred = e;
         }
+      }
+
+      if (exceptionOccurred != null) {
+        jobPluginInfo.setSourceObjectsProcessedWithFailure(
+          jobPluginInfo.getSourceObjectsCount() - jobPluginInfo.getSourceObjectsProcessedWithSuccess());
       }
 
       jobPluginInfo.finalizeInfo();
       PluginHelper.updateJobInformationAsync(plugin, jobPluginInfo);
+
+      if (exceptionOccurred != null) {
+        // 20180822 hsilva: this is required in order to finalize info (code
+        // above) & let orchestrator handle this throwable correctly
+        throw new PluginException("A plugin exception has occurred", exceptionOccurred);
+      }
     } catch (JobException | AuthorizationDeniedException | RequestNotValidException | GenericException
       | NotFoundException e) {
       throw new PluginException("A job exception has occurred", e);
@@ -230,19 +260,19 @@ public final class PluginHelper {
   }
 
   public static <T extends IsRODAObject> Report processObjects(Plugin<T> plugin, RODAProcessingLogic<T> beforeLogic,
-    RODAObjectProcessingLogic<T> perObjectLogic, IndexService index, ModelService model, StorageService storage,
+    RODAObjectProcessingLogicNew<T> perObjectLogic, IndexService index, ModelService model, StorageService storage,
     List<LiteOptionalWithCause> liteList) throws PluginException {
     return processObjects(plugin, beforeLogic, perObjectLogic, null, index, model, storage, liteList);
   }
 
   public static <T extends IsRODAObject> Report processObjects(Plugin<T> plugin,
-    RODAObjectProcessingLogic<T> perObjectLogic, RODAProcessingLogic<T> afterLogic, IndexService index,
+    RODAObjectProcessingLogicNew<T> perObjectLogic, RODAProcessingLogic<T> afterLogic, IndexService index,
     ModelService model, StorageService storage, List<LiteOptionalWithCause> liteList) throws PluginException {
     return processObjects(plugin, null, perObjectLogic, afterLogic, index, model, storage, liteList);
   }
 
   public static <T extends IsRODAObject> Report processObjects(Plugin<T> plugin,
-    RODAObjectProcessingLogic<T> perObjectLogic, IndexService index, ModelService model, StorageService storage,
+    RODAObjectProcessingLogicNew<T> perObjectLogic, IndexService index, ModelService model, StorageService storage,
     List<LiteOptionalWithCause> liteList) throws PluginException {
     return processObjects(plugin, null, perObjectLogic, null, index, model, storage, liteList);
   }
@@ -255,6 +285,7 @@ public final class PluginHelper {
   public static Report processVoids(Plugin<Void> plugin, RODAProcessingLogic<Void> logic, IndexService index,
     ModelService model, StorageService storage, int setSourceObjectsCount) throws PluginException {
     Report report = PluginHelper.initPluginReport(plugin);
+    Throwable exceptionOccurred = null;
 
     try {
       JobPluginInfo jobPluginInfo = PluginHelper.getInitialJobInformation(plugin, 0);
@@ -265,12 +296,21 @@ public final class PluginHelper {
 
       try {
         logic.process(index, model, storage, report, job, jobPluginInfo, plugin);
-      } catch (Exception e) {
+      } catch (Throwable e) {
         LOGGER.error("Unexpected exception during 'logic' execution", e);
+        jobPluginInfo.setSourceObjectsProcessedWithFailure(
+          jobPluginInfo.getSourceObjectsCount() - jobPluginInfo.getSourceObjectsProcessedWithSuccess());
+        exceptionOccurred = e;
       }
 
       jobPluginInfo.finalizeInfo();
       PluginHelper.updateJobInformationAsync(plugin, jobPluginInfo);
+
+      if (exceptionOccurred != null) {
+        // 20180822 hsilva: this is required in order to finalize info (code
+        // above) & let orchestrator handle this throwable correctly
+        throw new PluginException("A plugin exception has occurred", exceptionOccurred);
+      }
     } catch (JobException | AuthorizationDeniedException | RequestNotValidException | GenericException
       | NotFoundException e) {
       throw new PluginException("A job exception has occurred", e);

@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.roda.core.data.common.RodaConstants;
+import org.roda.core.data.v2.index.IsIndexed;
 import org.roda.core.data.v2.index.filter.Filter;
 import org.roda.core.data.v2.index.select.SelectedItems;
 import org.roda.core.data.v2.index.select.SelectedItemsAll;
@@ -39,11 +40,10 @@ import org.roda.wui.client.browse.BrowserService;
 import org.roda.wui.client.common.UserLogin;
 import org.roda.wui.client.common.dialogs.Dialogs;
 import org.roda.wui.client.common.lists.utils.AsyncTableCell.CheckboxSelectionListener;
-import org.roda.wui.client.common.lists.utils.BasicAsyncTableCell;
 import org.roda.wui.client.common.lists.utils.ClientSelectedItemsUtils;
+import org.roda.wui.client.common.lists.utils.ListBuilder;
 import org.roda.wui.client.common.lists.utils.ListFactory;
-import org.roda.wui.client.common.search.SearchFilters;
-import org.roda.wui.client.common.search.SearchPanel;
+import org.roda.wui.client.common.search.SearchWrapper;
 import org.roda.wui.client.common.utils.JavascriptUtils;
 import org.roda.wui.client.common.utils.PluginUtils;
 import org.roda.wui.client.ingest.process.PluginOptionsPanel;
@@ -118,7 +118,7 @@ public class CreateDefaultJob extends Composite {
   private static final ClientMessages messages = GWT.create(ClientMessages.class);
 
   @SuppressWarnings("rawtypes")
-  private BasicAsyncTableCell list = null;
+  private SearchWrapper search = null;
   private List<PluginInfo> plugins = null;
   private PluginInfo selectedPlugin = null;
   private boolean isListEmpty = true;
@@ -459,29 +459,22 @@ public class CreateDefaultJob extends Composite {
   private void defineTargetInformation(String objectClassName) {
     ListFactory listFactory = new ListFactory();
     isListEmpty = true;
-    BasicAsyncTableCell<?> tableList = listFactory.getList(objectClassName, "", Filter.ALL, true, 10, 50);
 
-    if (tableList == null) {
+    ListBuilder<? extends IsIndexed> listBuilder = listFactory.getListBuilder("CreateDefaultJob", objectClassName, "",
+      Filter.ALL, 10, 50);
+
+    if (listBuilder != null) {
+      listBuilder.getOptions().addStyleName("searchResults").addCheckboxSelectionListener(
+        (CheckboxSelectionListener) selected -> isListEmpty = ClientSelectedItemsUtils.isEmpty(selected));
+
+      search = new SearchWrapper(false).createListAndSearchPanel(listBuilder);
+
+      targetListPanel.add(search);
+      targetListPanel.setVisible(true);
+    } else {
       targetListPanel.setVisible(false);
-      return;
     }
 
-    SearchPanel searchPanel = new SearchPanel(SearchFilters.defaultFilter(objectClassName),
-      SearchFilters.allFilter(objectClassName), true, "", false, false, true);
-    searchPanel.setList(tableList);
-    targetListPanel.add(searchPanel);
-    targetListPanel.add(tableList);
-    targetListPanel.setVisible(true);
-    tableList.addStyleName("searchResults");
-    this.list = tableList;
-
-    this.list.addCheckboxSelectionListener(new CheckboxSelectionListener() {
-      @Override
-      public void onSelectionChange(SelectedItems selected) {
-        boolean empty = ClientSelectedItemsUtils.isEmpty(selected);
-        isListEmpty = empty;
-      }
-    });
   }
 
   @SuppressWarnings("rawtypes")
@@ -489,7 +482,7 @@ public class CreateDefaultJob extends Composite {
   public void buttonCreateHandler(ClickEvent e) {
     buttonCreate.setEnabled(false);
     String jobName = getName().getText();
-    SelectedItems selected = list.getSelected();
+    SelectedItems selected = search.getSelectedItemsInCurrentList();
 
     if (org.roda.core.data.v2.Void.class.getName().equals(targetList.getSelectedValue())) {
       selected = new SelectedItemsNone();
@@ -518,7 +511,7 @@ public class CreateDefaultJob extends Composite {
   @UiHandler("buttonObtainCommand")
   public void buttonObtainCommandHandler(ClickEvent e) {
     String jobName = getName().getText();
-    SelectedItems selected = list.getSelected();
+    SelectedItems selected = search.getSelectedItemsInCurrentList();
 
     if (org.roda.core.data.v2.Void.class.getName().equals(targetList.getSelectedValue())) {
       selected = new SelectedItemsNone();

@@ -1,9 +1,8 @@
 package org.roda.wui.client.common.actions.widgets;
 
 import org.roda.core.data.v2.index.IsIndexed;
-import org.roda.wui.client.common.actions.model.ActionsButton;
+import org.roda.wui.client.common.actions.model.ActionableButton;
 
-import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.HasClickHandlers;
@@ -19,13 +18,13 @@ import com.google.gwt.user.client.ui.Label;
 /**
  * @author Bruno Ferreira <bferreira@keep.pt>
  */
-public class ActionableButton<T extends IsIndexed> extends Composite implements HasEnabled, HasClickHandlers, HasText {
-  private final ActionsButton<T> actionButton;
+public class ActionButton<T extends IsIndexed> extends Composite implements HasEnabled, HasClickHandlers, HasText {
+  private final ActionableButton<T> actionButton;
 
   private FlowPanel button;
   private Label label;
 
-  public ActionableButton(ActionsButton<T> actionButton) {
+  public ActionButton(ActionableButton<T> actionButton) {
     this.actionButton = actionButton;
     button = new FlowPanel();
 
@@ -35,10 +34,13 @@ public class ActionableButton<T extends IsIndexed> extends Composite implements 
     addStyleDependentName(actionButton.getImpact().toString().toLowerCase());
     setEnabled(true);
 
-    String iconClass = "fa fa-exclamation-triangle";
+    String iconClass = "fa fa-question-circle";
     for (String possibleIcon : actionButton.getExtraCssClasses()) {
       if (possibleIcon.startsWith("btn-")) {
         iconClass = possibleIcon.replaceFirst("btn-", "fa fa-");
+      } else if (possibleIcon.startsWith("fas fa-") || possibleIcon.startsWith("far fa-")
+        || possibleIcon.startsWith("fal fa-")) {
+        iconClass = possibleIcon;
       }
     }
     HTMLPanel icon = new HTMLPanel(SafeHtmlUtils.fromSafeConstant("<i class='" + iconClass + "'></i>"));
@@ -52,8 +54,6 @@ public class ActionableButton<T extends IsIndexed> extends Composite implements 
 
   @Override
   public HandlerRegistration addClickHandler(ClickHandler handler) {
-    GWT.log("addedClickHandler");
-
     return addDomHandler(new ClickHandlerWrapper(this, handler), ClickEvent.getType());
   }
 
@@ -88,10 +88,10 @@ public class ActionableButton<T extends IsIndexed> extends Composite implements 
    * enabled
    */
   private class ClickHandlerWrapper implements ClickHandler {
-    private final ActionableButton button;
+    private final ActionButton button;
     private final ClickHandler innerClickHandler;
 
-    ClickHandlerWrapper(ActionableButton button, ClickHandler innerClickHandler) {
+    ClickHandlerWrapper(ActionButton button, ClickHandler innerClickHandler) {
       this.button = button;
       this.innerClickHandler = innerClickHandler;
     }

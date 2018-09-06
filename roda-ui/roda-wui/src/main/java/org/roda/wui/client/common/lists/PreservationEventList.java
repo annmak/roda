@@ -14,17 +14,19 @@ import java.util.List;
 import java.util.Map;
 
 import org.roda.core.data.common.RodaConstants;
-import org.roda.core.data.v2.index.filter.Filter;
 import org.roda.core.data.v2.index.sort.Sorter;
 import org.roda.core.data.v2.ip.metadata.IndexedPreservationEvent;
 import org.roda.core.data.v2.jobs.Report.PluginState;
-import org.roda.wui.client.common.lists.utils.BasicAsyncTableCell;
+import org.roda.wui.client.common.lists.utils.AsyncTableCell;
+import org.roda.wui.client.common.lists.utils.AsyncTableCellOptions;
+import org.roda.wui.client.common.utils.StringUtils;
 
 import com.google.gwt.cell.client.DateCell;
 import com.google.gwt.cell.client.SafeHtmlCell;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.safehtml.shared.SafeHtml;
+import com.google.gwt.safehtml.shared.SafeHtmlBuilder;
 import com.google.gwt.safehtml.shared.SafeHtmlUtils;
 import com.google.gwt.user.cellview.client.CellTable;
 import com.google.gwt.user.cellview.client.Column;
@@ -39,7 +41,7 @@ import config.i18n.client.ClientMessages;
  * @author Luis Faria <lfaria@keep.pt>
  *
  */
-public class PreservationEventList extends BasicAsyncTableCell<IndexedPreservationEvent> {
+public class PreservationEventList extends AsyncTableCell<IndexedPreservationEvent> {
 
   private static final ClientMessages messages = GWT.create(ClientMessages.class);
 
@@ -53,8 +55,9 @@ public class PreservationEventList extends BasicAsyncTableCell<IndexedPreservati
     RodaConstants.PRESERVATION_EVENT_TYPE, RodaConstants.PRESERVATION_EVENT_DETAIL,
     RodaConstants.PRESERVATION_EVENT_OUTCOME);
 
-  public PreservationEventList(String listId, Filter filter, String summary, boolean selectable) {
-    super(IndexedPreservationEvent.class, listId, filter, summary, selectable, fieldsToReturn);
+  @Override
+  protected void adjustOptions(AsyncTableCellOptions<IndexedPreservationEvent> options) {
+    options.withFieldsToReturn(fieldsToReturn);
   }
 
   @Override
@@ -87,16 +90,29 @@ public class PreservationEventList extends BasicAsyncTableCell<IndexedPreservati
       public SafeHtml getValue(IndexedPreservationEvent event) {
         SafeHtml ret = null;
         if (event != null) {
-          PluginState outcome = PluginState.valueOf(event.getEventOutcome());
-          if (PluginState.SUCCESS.equals(outcome)) {
-            ret = SafeHtmlUtils
-              .fromSafeConstant("<span class='label-success'>" + messages.pluginStateMessage(outcome) + "</span>");
-          } else if (PluginState.FAILURE.equals(outcome)) {
-            ret = SafeHtmlUtils
-              .fromSafeConstant("<span class='label-danger'>" + messages.pluginStateMessage(outcome) + "</span>");
-          } else {
-            ret = SafeHtmlUtils
-              .fromSafeConstant("<span class='label-warning'>" + messages.pluginStateMessage(outcome) + "</span>");
+          try {
+            PluginState outcome = PluginState.valueOf(event.getEventOutcome());
+            if (PluginState.SUCCESS.equals(outcome)) {
+              ret = SafeHtmlUtils
+                .fromSafeConstant("<span class='label-success'>" + messages.pluginStateMessage(outcome) + "</span>");
+            } else if (PluginState.FAILURE.equals(outcome)) {
+              ret = SafeHtmlUtils
+                .fromSafeConstant("<span class='label-danger'>" + messages.pluginStateMessage(outcome) + "</span>");
+            } else {
+              ret = SafeHtmlUtils
+                .fromSafeConstant("<span class='label-warning'>" + messages.pluginStateMessage(outcome) + "</span>");
+            }
+          } catch (IllegalArgumentException e) {
+            GWT.log("Unrecognized event outcome: " + event.getEventOutcome());
+
+            SafeHtmlBuilder b = new SafeHtmlBuilder();
+            b.append(SafeHtmlUtils.fromSafeConstant("<span class='label-danger'>"));
+            if (StringUtils.isNotBlank(event.getEventOutcome())) {
+              b.append(SafeHtmlUtils.fromString(event.getEventOutcome()));
+            }
+            b.append(SafeHtmlUtils.fromSafeConstant("</span>"));
+
+            ret = b.toSafeHtml();
           }
         }
         return ret;

@@ -27,8 +27,8 @@ import org.roda.core.data.v2.notifications.Notification.NOTIFICATION_STATE;
 import org.roda.core.data.v2.risks.Risk.SEVERITY_LEVEL;
 import org.roda.core.data.v2.risks.RiskIncidence;
 import org.roda.core.data.v2.risks.RiskIncidence.INCIDENCE_STATUS;
-import org.roda.wui.client.browse.BrowseAIP;
 import org.roda.wui.client.browse.BrowseRepresentation;
+import org.roda.wui.client.browse.BrowseTop;
 import org.roda.wui.client.browse.MetadataValue;
 import org.roda.wui.client.browse.RepresentationInformationHelper;
 import org.roda.wui.client.planning.RepresentationInformationAssociations;
@@ -61,7 +61,7 @@ public class HtmlSnippetUtils {
   private static final String OPEN_SPAN_CLASS_LABEL_SUCCESS = "<span class='label-success'>";
 
   private static final String OPEN_SPAN_ORIGINAL_LABEL_SUCCESS = "<span class='label-success browseRepresentationOriginalIcon'>";
-  private static final String OPEN_H4_CLASS_LABEL_SUCCESS = "<span class='h4' style='font-size: 3.2rem'>";
+  private static final String OPEN_H2_CLASS_LABEL_SUCCESS = "<span class='h2'>";
   private static final String CLOSE_SPAN = "</span>";
 
   private static final ClientMessages messages = GWT.create(ClientMessages.class);
@@ -137,7 +137,7 @@ public class HtmlSnippetUtils {
 
   public static void getRepresentationTypeHTML(FlowPanel panel, String title, List<String> representationStates) {
     RepresentationInformationHelper.addFieldWithRepresentationInformationIcon(
-      SafeHtmlUtils.fromSafeConstant(OPEN_H4_CLASS_LABEL_SUCCESS + title + CLOSE_SPAN), null, panel, false);
+      SafeHtmlUtils.fromSafeConstant(OPEN_H2_CLASS_LABEL_SUCCESS + title + CLOSE_SPAN), null, panel, false);
 
     for (String state : representationStates) {
       SafeHtmlBuilder b = new SafeHtmlBuilder();
@@ -147,7 +147,7 @@ public class HtmlSnippetUtils {
 
       Anchor icon = new Anchor();
       icon.setHTML(b.toSafeHtml());
-      icon.addStyleName("representation-information-badge");
+      icon.addStyleName("h6 representation-information-badge");
 
       final String filter = RepresentationInformationUtils.createRepresentationInformationFilter(
         RodaConstants.INDEX_REPRESENTATION, RodaConstants.REPRESENTATION_STATES, state);
@@ -269,7 +269,7 @@ public class HtmlSnippetUtils {
     final Anchor objectLink) {
     if (AIP.class.getSimpleName().equals(incidence.getObjectClass())) {
       objectLabel.setText(messages.showAIPExtended());
-      objectLink.setHref(HistoryUtils.createHistoryHashLink(BrowseAIP.RESOLVER, incidence.getAipId()));
+      objectLink.setHref(HistoryUtils.createHistoryHashLink(BrowseTop.RESOLVER, incidence.getAipId()));
       objectLink.setText(incidence.getAipId());
     } else if (Representation.class.getSimpleName().equals(incidence.getObjectClass())) {
       objectLabel.setText(messages.showRepresentationExtended());

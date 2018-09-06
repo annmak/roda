@@ -278,7 +278,7 @@ div.inline {
 
 
 .card {
-	background-color: white;
+    background-color: white;
     box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
     transition: all 0.3s cubic-bezier(.25,.8,.25,1);
     border-radius: 2px;
@@ -286,11 +286,11 @@ div.inline {
 }
 
 .card:hover {
-  box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
 }
 
 .card + .card {
-    margin-top: 20px;
+    margin-top: 30px;
 }
 
 .card > .h5,
@@ -355,30 +355,7 @@ div.inline {
 }
 
 .descriptiveMetadataCard {
-	background-color: inherit;
-	box-shadow: none;
-	padding: 0;
-	transition: none;
-}
-
-.descriptiveMetadataCard:hover {
-	box-shadow: none;
-}
-
-.descriptiveMetadataCard .label {
-    font-size: 1.5rem;
-    font-weight: 300;
-    color: #999;
-    display: inline-block;
-    width: 200px;
-    line-height: 1em;
-}
-
-.descriptiveMetadataCard .value {
-    font-size: 1.5rem;
-    display: inline-block;
-    color: rgb(88, 89, 91);
-    vertical-align: top;
+    padding: 0;
 }
 
 .slider-container {
@@ -495,6 +472,10 @@ div.inline {
     content: "\e900";
 }
 
+.breadcrumb .roda-logo {
+    vertical-align: text-bottom;
+}
+
 code {
     padding: .2rem .5rem;
     margin: 0 .2rem;
@@ -548,6 +529,7 @@ pre code {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin-right: 5px;
+    font-weight: 900;
 }
 
 .success {
@@ -606,6 +588,10 @@ pre code {
 .ri-form-label-inline {
 	display: inline;
 	margin-right: 5px;
+}
+
+.browseNewDescriptiveMetadataButton {
+    margin-top: 10px;
 }
 
 .panelDescriptiveMetadata .form-separator:first-child {
@@ -1150,6 +1136,10 @@ pre code {
     margin-left: 30px;
 }
 
+.card .my-asyncdatagrid-side-panel {
+    margin-left: 15px;
+}
+
 .my-asyncdatagrid-side-panel .sidebar-facet-panel {
     width: 225px;
 }
@@ -1170,6 +1160,7 @@ pre code {
     display: inline-block;
     line-height: 1;
     font-size: 1.3rem;
+    float:right;
 }
 
 .my-asyncdatagrid-pager-results img {
@@ -1349,6 +1340,7 @@ pre code {
     min-width: 150px;
     cursor: pointer;
     cursor: hand;
+    text-transform: capitalize;
 }
 
 .dropdown-item:hover {
@@ -1371,6 +1363,17 @@ pre code {
     padding-left: 5px;
     padding-right: 5px;
     content: "\f107";
+}
+
+.dropdown-label .gwt-Label,
+.dropdown-item .gwt-Label {
+    display: inline;
+}
+
+.dropdown-item .fa,
+.dropdown-label .fa,
+.searchPanelLeft .selected-count-panel .fa {
+    padding-right: 1rem;
 }
 
 .open .dropdown-label:after {
@@ -1825,7 +1828,7 @@ td.datePickerMonth, td.datePickerYear {
     cursor: pointer;
     cursor: hand;
     font-weight: 500;
-    font-size: 1.3rem;
+    font-size: 1.4rem;
     font-variant: normal;
     color: #fff;
     padding: 5px 10px;
@@ -1964,8 +1967,6 @@ td.datePickerMonth, td.datePickerYear {
 .main .wui-breadcrumbPanel .breadcrumb-last {
     color: #404142;
     text-decoration: none;
-
-    max-width: 100px;
 }
 
 .viewRepresentationBreadcrumb .breadcrumb-last {
@@ -1982,6 +1983,11 @@ td.datePickerMonth, td.datePickerYear {
     font-size: 1.2rem;
     color: #a7a9ac;
     cursor: text;
+}
+
+.main .navigationToolbarBreadcrumb .breadcrumb,
+.main .navigationToolbarBreadcrumb .breadcrumb-separator {
+    font-size: 1.4rem;
 }
 
 /**********************************************
@@ -2264,18 +2270,6 @@ td.datePickerMonth, td.datePickerYear {
     background-image: repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(255, 255, 255, .5) 35px, rgba(255, 255, 255, .5) 70px);
 }
 
-.browseTitle-allCollections {
-    line-height: 4rem;
-    font-size: 2.4rem;
-}
-
-.browseBreadcrumb {
-}
-
-.browseNewDescriptiveMetadataButton {
-    margin-bottom: 20px;
-}
-
 .browseItemPanel {
     vertical-align: middle;
 }
@@ -2285,28 +2279,20 @@ td.datePickerMonth, td.datePickerYear {
     margin-bottom: 1.5rem;
 }
 
-.browseItemPanelText {
-    display: inline;
-    vertical-align: middle;
-    padding-left: 1rem;
-}
-
 .browseItemPanelRisksEventsLogs > .gwt-Hyperlink,
 .browseItemPanelRisksEventsLogs > .gwt-Label {
     display: inline;
 }
 
+.browseItemIcon + .browseItemText {
+    padding-left: 1rem;
+}
+
 .browseItemIcon {
     display: inline;
-    vertical-align: middle;
 }
 
-.browseTitle-allCollections-wrapper {
-    display: none;
-}
-
-.browseTitle-allCollections-wrapper .browseItemIcon,
-.browseTitle-allCollections-wrapper .browseItemPanelText {
+.browseItemIcon div {
     display: inline-block;
 }
 
@@ -2323,24 +2309,9 @@ td.datePickerMonth, td.datePickerYear {
     font-weight: 300;
 }
 
-.browseItemIcon-all {
-    display: inline-block;
-    font-size: 3.2rem;
-    line-height: 3.2rem;
-}
-
-.browseItemIcon-other {
-    display: inline-block;
-    font-size: 3.2rem;
-    line-height: 3.2rem;
-}
-
 .browseItemText {
     display: inline;
-    margin-bottom: 0 !important;
-    font-size: 3.2rem;
-    line-height: 1.2;
-    letter-spacing: -.1rem;
+    vertical-align: bottom;
 }
 
 .browseItemTextWithoutFontSize {
@@ -2396,23 +2367,17 @@ td.datePickerMonth, td.datePickerYear {
     margin: 10px 0 10px 0;
 }
 
-.browseItemMetadata.gwt-TabBar {
+.browseItemMetadata .gwt-TabBar {
+    background-color: #eee;
+    line-height: 3.5rem;
+    width: auto !important; /* needed so buttons appear on the right */
     border-collapse: collapse;
 }
 
 .browseItemMetadata .gwt-TabPanelBottom {
     background-color: transparent;
-    padding: 5px 10px;
+    padding: 20px 25px;
     min-height: 25px;
-}
-
-.browseItemMetadata .gwt-TabBarRest-wrapper {
-    border-bottom: 1px solid rgba(167, 169, 172, 0.5);
-}
-
-.browseItemMetadata .gwt-TabBarItem-wrapper {
-    border-bottom: 1px solid rgba(167, 169, 172, 0.5);
-    padding-right: 20px;
 }
 
 .browseItemMetadata .gwt-TabBarItem {
@@ -2422,30 +2387,13 @@ td.datePickerMonth, td.datePickerYear {
     cursor: pointer;
     cursor: hand;
     font-size: 15px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    padding-right: 0px;
+    padding: 0;
     position: relative;
-    color: #a7a9ac;
+    color: #999;
 }
 
 .browseItemMetadata .gwt-TabBarItem > div {
     padding-bottom: 3px;
-}
-
-.browseItemMetadata .gwt-TabBarItem:after {
-    content: '';
-    display: block;
-    position: absolute;
-    height: 2px;
-    left: 50%;
-    background-color: #089de3;
-    -webkit-transition: all 0.2s;
-    -moz-transition: all 0.2s;
-    -o-transition: all 0.2s;
-    transition: all 0.2s;
-    width: 0px;
-    bottom: -1px;
 }
 
 .browseItemMetadata .gwt-TabBarItem:hover {
@@ -2453,8 +2401,8 @@ td.datePickerMonth, td.datePickerYear {
 }
 
 .browseItemMetadata .addTabWrapper {
+    padding-left: 13px;
     background-color: transparent;
-    color: #089de3;
 }
 
 .browseItemMetadata .addTabWrapper > div {
@@ -2469,7 +2417,8 @@ td.datePickerMonth, td.datePickerYear {
     width: 0;
 }
 
-.browseItemMetadata .gwt-TabBarItem .premisTab, .browseItemMetadata .gwt-TabBarItem .addTab {
+.browseItemMetadata .gwt-TabBarItem .premisTab,
+.browseItemMetadata .gwt-TabBarItem .addTab {
     font-weight: normal;
     font-size: 1.3rem;
     white-space: nowrap;
@@ -2481,16 +2430,6 @@ td.datePickerMonth, td.datePickerYear {
 
 .browseItemMetadata .gwt-TabBarItem .premisTab .gwt-HTML {
     margin-right: 5px;
-}
-
-.browseItemMetadata .gwt-TabBarItem .gwt-Label {
-    color: inherit;
-    font-weight: 300;
-    font-size: 1.5rem;
-}
-
-.browseItemMetadata .gwt-TabBarItem-wrapper-selected {
-    /* 	border-bottom: none; */
 }
 
 .browseItemMetadata .gwt-TabBarItem-selected {
@@ -2505,8 +2444,39 @@ td.datePickerMonth, td.datePickerYear {
     left: 0;
 }
 
-.browseItemMetadata .gwt-TabBarItem-selected .gwt-Label {
+.browseItemMetadata .gwt-TabBarItem .gwt-Label {
+    padding-left: 10px;
+    padding-right: 10px;
     color: inherit;
+    font-weight: 300;
+    font-size: 1.5rem;
+}
+
+.browseItemMetadata .gwt-TabBarItem-wrapper-selected .gwt-Label {
+    background-color: white;
+}
+
+.browseItemMetadata .gwt-TabBarFirst-wrapper {
+    padding-right: 3px;
+}
+
+.browseItemMetadata .addTabWrapper .fa {
+    vertical-align: sub;
+}
+
+.browseItemMetadata .toolbarLink {
+    line-height: 4rem;
+    width: 40px;
+    height: 40px;
+    border-left: 1px solid #aaa;
+}
+
+.browseItemMetadata .descriptiveMetadataLinks {
+    margin:0;
+}
+
+.browseItemMetadata .descriptiveMetadataTabButtons {
+    float:right;
 }
 
 .descriptiveMetadataHTML {
@@ -3487,14 +3457,37 @@ td.datePickerMonth, td.datePickerYear {
 /**********************************************
 				DEFAULT SEARCH + ADV SEARCH
 ************************************************/
-.searchPanel {
-    margin-right: 40px;
-    height: 4rem;
-    background-color: #eee;
+.searchPanelContainer {
+    margin-bottom: 30px;
 }
 
-.searchPanelAdvanced {
+.searchPanelContainer.with-prefilters{
+    margin-bottom: 6px;
+}
+
+.card .searchPanelContainer.with-prefilters{
+    margin-bottom: 0;
+}
+
+.card .searchPanelContainer {
+    margin-bottom: 15px;
+    margin-top: -15px;
+    margin-left: -15px;
+    margin-right: -15px;
+}
+
+.browse_top .card .searchPanelContainer {
+    margin: 0;
+}
+
+.browse_top .card .searchPanelContainer .selected-count-panel .gwt-InlineHTML {
+    display: none;
+}
+
+.searchPanel {
     margin-right: 80px;
+    height: 4rem;
+    background-color: #eee;
 }
 
 .searchPanelLeft {
@@ -3513,7 +3506,7 @@ td.datePickerMonth, td.datePickerYear {
     border-top: 2px solid white;
 }
 
-.searchPanelLeft .selected-count-label,
+.searchPanelLeft .selected-count-panel,
 .searchInputListBox .dropdown-label,
 .searchInputListBoxPopup .dropdown-item {
     line-height: 4rem;
@@ -3522,13 +3515,18 @@ td.datePickerMonth, td.datePickerYear {
     border: none;
     padding: 0 0 0 0;
     padding-left: 20px;
-    padding-right: 10px;
-    min-width: 175px;
+    padding-right: 35px;
+    min-width: 165px;
     position: relative;
 }
 
-.searchPanelLeft .selected-count-label {
-    min-width: 135px;
+.searchPanelLeft .selected-count-panel {
+    min-width: 0;
+    padding-right: 20px;
+}
+
+.searchPanelLeft .selected-count-panel .selected-count-panel-default {
+    text-transform: capitalize;
 }
 
 .searchInputListBox .dropdown-label:after {
@@ -3554,14 +3552,26 @@ td.datePickerMonth, td.datePickerYear {
 
 .searchPanelRight {
     float: right;
-    width: 40px;
-    margin-right: -40px;
     height: 4rem;
 }
 
-.searchPanelAdvanced .searchPanelRight {
-    width: 80px;
-    margin-right: -80px;
+.searchPanelRight .actions-button {
+    cursor: pointer;
+    cursor: hand;
+    position: relative;
+    font-size: 15px;
+    float: right;
+    width: 40px;
+    background-color: #999;
+    color: white;
+}
+
+.searchPanelRight > div {
+    box-sizing: border-box;
+}
+
+.searchPanelRight .actions-button:hover {
+    background-color: #089de3;
 }
 
 .searchPanelAdvanced .searchBox {
@@ -3572,6 +3582,32 @@ td.datePickerMonth, td.datePickerYear {
     /*line-height: 4rem;
     height: 4rem; */
 }
+
+.searchPanelRight .searchPanelButtonsSeparator {
+    border-left: 1px solid #aaa;
+}
+
+.searchPanel.searchPanelButtons-0 { margin-right:   0px; }
+.searchPanel.searchPanelButtons-1 { margin-right:  40px; }
+.searchPanel.searchPanelButtons-2 { margin-right:  80px; }
+.searchPanel.searchPanelButtons-3 { margin-right: 120px; }
+.searchPanel.searchPanelButtons-4 { margin-right: 160px; }
+.searchPanel.searchPanelButtons-5 { margin-right: 200px; }
+.searchPanel.searchPanelButtons-6 { margin-right: 240px; }
+.searchPanel.searchPanelButtons-7 { margin-right: 280px; }
+.searchPanel.searchPanelButtons-8 { margin-right: 320px; }
+.searchPanel.searchPanelButtons-9 { margin-right: 360px; }
+
+.searchPanel.searchPanelButtons-0 .searchPanelRight { width:   0px; margin-right:   -0px; }
+.searchPanel.searchPanelButtons-1 .searchPanelRight { width:  40px; margin-right:  -40px; }
+.searchPanel.searchPanelButtons-2 .searchPanelRight { width:  80px; margin-right:  -80px; }
+.searchPanel.searchPanelButtons-3 .searchPanelRight { width: 120px; margin-right: -120px; }
+.searchPanel.searchPanelButtons-4 .searchPanelRight { width: 160px; margin-right: -160px; }
+.searchPanel.searchPanelButtons-5 .searchPanelRight { width: 200px; margin-right: -200px; }
+.searchPanel.searchPanelButtons-6 .searchPanelRight { width: 240px; margin-right: -240px; }
+.searchPanel.searchPanelButtons-7 .searchPanelRight { width: 280px; margin-right: -280px; }
+.searchPanel.searchPanelButtons-8 .searchPanelRight { width: 320px; margin-right: -320px; }
+.searchPanel.searchPanelButtons-9 .searchPanelRight { width: 360px; margin-right: -360px; }
 
 .searchBox {
     box-sizing: border-box;
@@ -3596,7 +3632,7 @@ td.datePickerMonth, td.datePickerYear {
     position: relative;
     float: left;
     width: 40px;
-    background-color: #089de3;
+    background-color: #999;
 }
 
 .advancedSearchButton {
@@ -3614,7 +3650,7 @@ td.datePickerMonth, td.datePickerYear {
 }
 
 .searchButton:hover {
-    background-color: #3998d0;
+    background-color: #089de3;
 }
 
 .searchButton-html {
@@ -3627,7 +3663,7 @@ td.datePickerMonth, td.datePickerYear {
     white-space: nowrap;
     line-height: 40px;
     position: absolute;
-    right: 40px;
+    right: 32px;
     background-color: #eeeeee;
     padding-left: 20px;
     background: -webkit-linear-gradient(right, #eee 80%, rgba(255, 255, 255, 0) 100%);
@@ -3664,6 +3700,14 @@ td.datePickerMonth, td.datePickerYear {
     margin-top: 30px;
 }
 
+.wui-ingest-transfer .searchResults {
+    margin-top: 0;
+}
+
+.card .searchResults {
+    margin-top: 20px;
+}
+
 .searchApplyFilters {
     margin: 10px 0;
     width: 100%;
@@ -3683,7 +3727,6 @@ td.datePickerMonth, td.datePickerYear {
     padding: 20px !important;
     min-height: auto;
     background-color: #eee;
-    margin-bottom: 20px;
     border-top: 2px solid #089de3;
 }
 
@@ -4246,9 +4289,7 @@ td.datePickerMonth, td.datePickerYear {
 .viewRepresentationFile .filePreviewToolbar .browseItemHeader {
 	display: inline-block;
 	vertical-align: bottom;
-    margin-left: 40px;
     margin-right: 2px;
-    font-size: 1.4rem;
     color: #222;
 }
 
@@ -6215,7 +6256,7 @@ td.datePickerMonth, td.datePickerYear {
 
 .csvDownloadButton, .actionsButton {
 	padding: 7px;
-	float: right;
+	float: left;
 }
 
 .object-dialog .searchPreFilters  {
@@ -6650,9 +6691,7 @@ span.code {
 /*****************************
   Actionable
  */
-.actionable-group-title {}
-
-.actionable-group-title-empty {
+.actionable-title-empty {
     display: none;
 }
 
@@ -6660,7 +6699,7 @@ span.code {
     display: none;
 }
 
-.popupContent .actions-empty-help {
+.ActionableStyleMenu .actions-empty-help {
     display: block;
     padding: 5px 15px;
 }
@@ -6677,38 +6716,44 @@ span.code {
     z-index: 2;
 }
 
-.actionable-menu {
-    display: block;
-}
-
-.actionable-menu .actionable-button {
-    display: block;
-    padding: 5px 10px;
-    font-size: 1.4rem;
-}
-
-.actionable-menu .actionable-button {
-    border-radius: 2px;
-}
-
-.actionable-menu .actionable-button:hover {
-    background-color: #eee;
+.actionable-button:hover {
     cursor: pointer;
 }
 
-.sidebar .actionable-menu .actionable-button:hover {
-    background-color: #ddd;
+.actionable-button-disabled:hover {
+    cursor: default;
 }
 
-.actionable-menu .actionable-button-destroyed:hover {
+.ActionableStyleMenu .actionable-menu {
+    display: block;
+}
+.ActionableStyleButtons .actionable-title,
+.ActionableStyleMenu .actionable-title {
+    display:none;
+}
+
+.ActionableStyleMenu .actionable-button {
+    display: block;
+    padding: 5px 10px;
+    font-size: 1.4rem;
+    border-radius: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.ActionableStyleMenu .actionable-button:hover {
+    background-color: #eee;
+}
+
+.ActionableStyleMenu .actionable-button-destroyed:hover {
     background-color: rgba(217, 83, 79, 0.4);
 }
 
-.actionable-menu .actionable-button-update:hover {
+.ActionableStyleMenu .actionable-button-update:hover {
     background-color: rgba(8, 157, 227, 0.4);
 }
 
-.actionable-menu .actionable-button .actionable-button-icon {
+.ActionableStyleMenu .actionable-button-icon {
     display: inline-block;
     vertical-align: middle;
     width: 16px;
@@ -6717,30 +6762,95 @@ span.code {
     color: #808080;
 }
 
-.actionable-menu .actionable-button .actionable-button-label {
+.ActionableStyleMenu .actionable-button-label {
     display: inline-block;
     vertical-align: middle;
     margin-left: 1rem;
 }
 
-.actionable-menu .actionable-button-disabled:hover,
-.sidebar .actionable-menu .actionable-button-disabled:hover{
-    cursor: default;
+.ActionableStyleMenu .actionable-button-disabled {
     background: initial;
 }
 
-.actionable-menu .actionable-button-disabled .actionable-button-icon,
-.actionable-menu .actionable-button-disabled .actionable-button-label {
+.ActionableStyleMenu .actionable-button-disabled .actionable-button-icon,
+.ActionableStyleMenu .actionable-button-disabled .actionable-button-label {
     color: #a0a0a0;
 }
 
-
-.sidebar .actionable-button {
+.sidebar .actionable-button,
+.slider .actionable-button,
+.ActionableStyleButtons .actionable-button {
+    /* mimic <button> and .btn */
+    border-radius: 2px;
+    padding: 8px 8px 8px 10px;
+    border: none;
+    background-color: #089de3;
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    text-decoration: none;
+    position: relative;
+    white-space: nowrap;
     width: 100%;
+    align-items: flex-start;
+    box-sizing: border-box;
+    text-rendering: auto;
+    letter-spacing: normal;
+    word-spacing: normal;
+    text-indent: 0;
+    text-shadow: none;
+    display: inline-block;
+    margin: 0em;
+    font-family: Arial, "Ubuntu", "HelveticaNeue", "Helvetica Neue", Helvetica, sans-serif;
+    line-height: normal;
 }
 
-.sidebar .actionable-button + .sidebar .actionable-button{
+.ActionableStyleButtons .actionable-button,
+.browseNewDescriptiveMetadataButton {
+    max-width: 250px;
+}
+
+.sidebar .actionable-title,
+.slider .actionable-title {
+    display: block;
+}
+
+.sidebar .actionable-button:hover,
+.slider .actionable-button:hover,
+.ActionableStyleButtons .actionable-button:hover {
+    background-color: #2988c0;
+}
+
+.sidebar .actionable-button-disabled,
+.slider .actionable-button-disabled,
+.ActionableStyleButtons .actionable-button-disabled{
+    background-color: #ddd;
+}
+
+.sidebar .actionable-button + .actionable-button,
+.slider .actionable-button + .actionable-button,
+.ActionableStyleButtons .actionable-button + .actionable-button {
     margin-top: 10px;
+}
+
+.sidebar .actionable-button-icon,
+.slider .actionable-button-icon,
+.ActionableStyleButtons .actionable-button-icon {
+    display: inline-block;
+    vertical-align: middle;
+    width: 16px;
+    text-align: center;
+    margin: 0;
+    float: right;
+}
+
+.card + .ActionableStyleButtons, .ActionableStyleButtons + .ActionableStyleButtons {
+    margin-top: 20px;
+    line-height: 1rem;
 }
 
 /* Actionable Title/Header */
@@ -6812,7 +6922,7 @@ span.code {
 .navigationToolbar .navigationToolbarHeaderArrow {
     display: inline-block;
     vertical-align: bottom;
-    font-size: 1.4rem;
+    font-size: 1.6rem;
     color: #222;
 }
 
@@ -6872,4 +6982,10 @@ span.code {
 .navigationToolbarLink.disabled, .navigationToolbarLink.disabled:hover {
     background-color: #ddd;
     cursor: auto;
+}
+
+/* Permission related */
+
+.hasNoPermissions {
+    display: none;
 }

@@ -9,11 +9,16 @@ package org.roda.wui.client.common.actions;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.roda.core.data.v2.ip.DIPFile;
-import org.roda.wui.client.common.actions.model.ActionsBundle;
-import org.roda.wui.client.common.actions.model.ActionsGroup;
+import org.roda.core.data.v2.ip.IndexedAIP;
+import org.roda.core.data.v2.ip.IndexedDIP;
+import org.roda.core.data.v2.ip.Permissions;
+import org.roda.wui.client.common.actions.model.ActionableBundle;
+import org.roda.wui.client.common.actions.model.ActionableGroup;
 import org.roda.wui.common.client.tools.RestUtils;
 
 import com.google.gwt.core.client.GWT;
@@ -24,31 +29,53 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import config.i18n.client.ClientMessages;
 
 public class DisseminationFileActions extends AbstractActionable<DIPFile> {
-  private static final DisseminationFileActions INSTANCE = new DisseminationFileActions();
+  private static final DisseminationFileActions INSTANCE = new DisseminationFileActions(null);
   private static final ClientMessages messages = GWT.create(ClientMessages.class);
 
   private static final Set<DisseminationFileAction> POSSIBLE_ACTIONS_ON_SINGLE_DISSEMINATION_FILE = new HashSet<>(
     Arrays.asList(DisseminationFileAction.values()));
 
-  private DisseminationFileActions() {
-    // do nothing
+  private Permissions permissions;
+
+  private DisseminationFileActions(Permissions permissions) {
+    this.permissions = permissions;
   }
 
-  public enum DisseminationFileAction implements Actionable.Action<DIPFile> {
-    DOWNLOAD;
+  public enum DisseminationFileAction implements Action<DIPFile> {
+    DOWNLOAD();
+
+    private List<String> methods;
+
+    DisseminationFileAction(String... methods) {
+      this.methods = Arrays.asList(methods);
+    }
+
+    @Override
+    public List<String> getMethods() {
+      return this.methods;
+    }
+  }
+
+  @Override
+  public DisseminationFileAction actionForName(String name) {
+    return DisseminationFileAction.valueOf(name);
   }
 
   public static DisseminationFileActions get() {
     return INSTANCE;
   }
 
-  @Override
-  public boolean canAct(Action<DIPFile> action, DIPFile dip) {
-    return POSSIBLE_ACTIONS_ON_SINGLE_DISSEMINATION_FILE.contains(action);
+  public static DisseminationFileActions get(Permissions permissions) {
+    return new DisseminationFileActions(permissions);
   }
 
   @Override
-  public void act(Actionable.Action<DIPFile> action, DIPFile disseminationFile, AsyncCallback<ActionImpact> callback) {
+  public boolean canAct(Action<DIPFile> action, DIPFile dipFile) {
+    return hasPermissions(action, permissions) && POSSIBLE_ACTIONS_ON_SINGLE_DISSEMINATION_FILE.contains(action);
+  }
+
+  @Override
+  public void act(Action<DIPFile> action, DIPFile disseminationFile, AsyncCallback<ActionImpact> callback) {
     if (DisseminationFileAction.DOWNLOAD.equals(action)) {
       download(disseminationFile, callback);
     } else {
@@ -68,16 +95,15 @@ public class DisseminationFileActions extends AbstractActionable<DIPFile> {
   }
 
   @Override
-  public ActionsBundle<DIPFile> createActionsBundle() {
-    ActionsBundle<DIPFile> dipFileActionableBundle = new ActionsBundle<>();
+  public ActionableBundle<DIPFile> createActionsBundle() {
+    ActionableBundle<DIPFile> dipFileActionableBundle = new ActionableBundle<>();
 
     // MANAGEMENT
-    ActionsGroup<DIPFile> managementGroup = new ActionsGroup<>(messages.disseminationFile());
+    ActionableGroup<DIPFile> managementGroup = new ActionableGroup<>(messages.disseminationFile());
     managementGroup.addButton(messages.downloadButton(), DisseminationFileAction.DOWNLOAD, ActionImpact.NONE,
       "btn-download");
 
     dipFileActionableBundle.addGroup(managementGroup);
-
     return dipFileActionableBundle;
   }
 }

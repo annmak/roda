@@ -15,12 +15,16 @@ import java.util.Set;
 import org.roda.core.data.common.RodaConstants;
 import org.roda.core.data.v2.index.IsIndexed;
 import org.roda.core.data.v2.ip.IndexedAIP;
+import org.roda.core.data.v2.ip.IndexedRepresentation;
+import org.roda.core.data.v2.ip.Permissions;
 import org.roda.wui.client.browse.bundle.BrowseAIPBundle;
+import org.roda.wui.client.browse.bundle.BrowseRepresentationBundle;
 import org.roda.wui.client.common.actions.AbstractActionable;
-import org.roda.wui.client.common.actions.Actionable;
+import org.roda.wui.client.common.actions.AipActions;
+import org.roda.wui.client.common.actions.RepresentationActions;
+import org.roda.wui.client.common.actions.model.ActionableBundle;
+import org.roda.wui.client.common.actions.model.ActionableGroup;
 import org.roda.wui.client.common.actions.model.ActionableObject;
-import org.roda.wui.client.common.actions.model.ActionsBundle;
-import org.roda.wui.client.common.actions.model.ActionsGroup;
 import org.roda.wui.client.common.actions.widgets.ActionableWidgetBuilder;
 import org.roda.wui.client.common.lists.pagination.ListSelectionUtils;
 import org.roda.wui.client.common.popup.CalloutPopup;
@@ -75,7 +79,11 @@ public class NavigationToolbar<T extends IsIndexed> extends Composite implements
   @UiField
   AccessibleFocusPanel sidebarButton;
 
+  @UiField
+  AccessibleFocusPanel actionsButton;
+
   private T currentObject = null;
+  private Permissions permissions = null;
   private HandlerRegistration searchPopupClickHandler = null;
 
   public NavigationToolbar() {
@@ -84,7 +92,13 @@ public class NavigationToolbar<T extends IsIndexed> extends Composite implements
   }
 
   public void setObject(T object) {
-    currentObject = object;
+    this.currentObject = object;
+    refresh();
+  }
+  
+  public void setObject(T object, Permissions permissions) {
+    this.currentObject = object;
+    this.permissions = permissions;
     refresh();
   }
 
@@ -107,6 +121,41 @@ public class NavigationToolbar<T extends IsIndexed> extends Composite implements
   public void refresh() {
     ListSelectionUtils.bindLayout(currentObject, previousButton, nextButton, keyboardFocus, true, false, false);
     setupSearchPopup();
+    setupActions();
+  }
+
+  private void setupActions() {
+    if (currentObject instanceof IndexedAIP) {
+      CalloutPopup popup = new CalloutPopup();
+      popup.addStyleName("ActionableStyleMenu");
+
+      AipActions aipActions;
+      IndexedAIP aip = (IndexedAIP) this.currentObject;
+      if (aip.getParentID() != null) {
+        aipActions = AipActions.get(aip.getParentID(), aip.getState(), aip.getPermissions());
+      } else {
+        aipActions = AipActions.get();
+      }
+
+      popup.setWidget(new ActionableWidgetBuilder<>(aipActions).buildListWithObjects(new ActionableObject<>(aip)));
+      actionsButton.addClickHandler(event -> popup.showRelativeTo(actionsButton));
+      actionsButton.setVisible(true);
+    } else if (currentObject instanceof IndexedRepresentation) {
+      CalloutPopup popup = new CalloutPopup();
+      popup.addStyleName("ActionableStyleMenu");
+
+      RepresentationActions representationActions;
+      IndexedRepresentation representation = (IndexedRepresentation) this.currentObject;
+
+      representationActions = RepresentationActions.get(representation.getAipId(), permissions);
+
+      popup.setWidget(new ActionableWidgetBuilder<>(representationActions)
+        .buildListWithObjects(new ActionableObject<>(representation)));
+      actionsButton.addClickHandler(event -> popup.showRelativeTo(actionsButton));
+      actionsButton.setVisible(true);
+    } else {
+      actionsButton.setVisible(false);
+    }
   }
 
   // Breadcrumb management
@@ -117,6 +166,10 @@ public class NavigationToolbar<T extends IsIndexed> extends Composite implements
 
   public void updateBreadcrumb(BrowseAIPBundle bundle) {
     breadcrumb.updatePath(BreadcrumbUtils.getAipBreadcrumbs(bundle.getAIPAncestors(), bundle.getAip()));
+  }
+
+  public void updateBreadcrumb(BrowseRepresentationBundle bundle) {
+    breadcrumb.updatePath(BreadcrumbUtils.getRepresentationBreadcrumbs(bundle));
   }
 
   public void updateBreadcrumbPath(BreadcrumbItem... items) {
@@ -154,6 +207,7 @@ public class NavigationToolbar<T extends IsIndexed> extends Composite implements
     }
   }
 
+  // TODO 2018-08-21 bferreira: change this to use button/action whitelist
   private static class SearchAipActions extends AbstractActionable<IndexedAIP> {
     private static final SearchAipActions INSTANCE = new SearchAipActions();
 
@@ -163,8 +217,24 @@ public class NavigationToolbar<T extends IsIndexed> extends Composite implements
       // do nothing
     }
 
-    public enum SearchAipAction implements Actionable.Action<IndexedAIP> {
-      SEARCH_DESCENDANTS, SEARCH_PACKAGE
+    public enum SearchAipAction implements Action<IndexedAIP> {
+      SEARCH_DESCENDANTS(), SEARCH_PACKAGE();
+
+      private List<String> methods;
+
+      SearchAipAction(String... methods) {
+        this.methods = Arrays.asList(methods);
+      }
+
+      @Override
+      public List<String> getMethods() {
+        return this.methods;
+      }
+    }
+
+    @Override
+    public Action<IndexedAIP> actionForName(String name) {
+      return SearchAipAction.valueOf(name);
     }
 
     public static SearchAipActions get() {
@@ -190,19 +260,17 @@ public class NavigationToolbar<T extends IsIndexed> extends Composite implements
     }
 
     @Override
-    public ActionsBundle<IndexedAIP> createActionsBundle() {
-      ActionsBundle<IndexedAIP> actionsBundle = new ActionsBundle<>();
+    public ActionableBundle<IndexedAIP> createActionsBundle() {
+      ActionableBundle<IndexedAIP> actionableBundle = new ActionableBundle<>();
 
       // SEARCH
-      ActionsGroup<IndexedAIP> searchGroup = new ActionsGroup<>();
+      ActionableGroup<IndexedAIP> searchGroup = new ActionableGroup<>();
       searchGroup.addButton(messages.searchContext(), SearchAipAction.SEARCH_DESCENDANTS, ActionImpact.NONE,
         "btn-sitemap");
       searchGroup.addButton(messages.searchAIP(), SearchAipAction.SEARCH_PACKAGE, ActionImpact.NONE, "btn-archive");
 
-      actionsBundle.addGroup(searchGroup);
-
-      return actionsBundle;
+      actionableBundle.addGroup(searchGroup);
+      return actionableBundle;
     }
-
   }
 }

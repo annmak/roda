@@ -17,37 +17,33 @@ import java.util.List;
 import java.util.Map;
 
 import org.roda.core.data.common.RodaConstants;
-import org.roda.core.data.utils.RepresentationInformationUtils;
 import org.roda.core.data.v2.common.Pair;
-import org.roda.core.data.v2.index.facet.Facets;
 import org.roda.core.data.v2.index.filter.EmptyKeyFilterParameter;
 import org.roda.core.data.v2.index.filter.Filter;
 import org.roda.core.data.v2.index.filter.SimpleFilterParameter;
 import org.roda.core.data.v2.ip.AIPState;
+import org.roda.core.data.v2.ip.IndexedAIP;
+import org.roda.core.data.v2.ip.IndexedDIP;
 import org.roda.core.data.v2.ip.IndexedFile;
 import org.roda.core.data.v2.ip.IndexedRepresentation;
 import org.roda.wui.client.browse.bundle.BrowseRepresentationBundle;
 import org.roda.wui.client.browse.bundle.DescriptiveMetadataViewBundle;
 import org.roda.wui.client.common.LastSelectedItemsSingleton;
-import org.roda.wui.client.common.NoAsyncCallback;
+import org.roda.wui.client.common.NavigationToolbar;
 import org.roda.wui.client.common.UserLogin;
-import org.roda.wui.client.common.actions.Actionable;
 import org.roda.wui.client.common.actions.DisseminationActions;
 import org.roda.wui.client.common.actions.FileActions;
-import org.roda.wui.client.common.actions.RepresentationActions;
-import org.roda.wui.client.common.actions.model.ActionableObject;
-import org.roda.wui.client.common.actions.widgets.ActionableWidgetBuilder;
 import org.roda.wui.client.common.lists.DIPList;
 import org.roda.wui.client.common.lists.SearchFileList;
-import org.roda.wui.client.common.lists.pagination.ListSelectionUtils;
-import org.roda.wui.client.common.search.SearchFilters;
-import org.roda.wui.client.common.search.SearchPanel;
+import org.roda.wui.client.common.lists.utils.AsyncTableCellOptions;
+import org.roda.wui.client.common.lists.utils.ListBuilder;
+import org.roda.wui.client.common.search.SearchWrapper;
+import org.roda.wui.client.common.slider.Sliders;
 import org.roda.wui.client.common.utils.AsyncCallbackUtils;
 import org.roda.wui.client.common.utils.HtmlSnippetUtils;
-import org.roda.wui.client.common.utils.JavascriptUtils;
-import org.roda.wui.client.main.BreadcrumbItem;
-import org.roda.wui.client.main.BreadcrumbPanel;
-import org.roda.wui.client.main.BreadcrumbUtils;
+import org.roda.wui.client.common.utils.PermissionUtils;
+import org.roda.wui.client.common.utils.StringUtils;
+import org.roda.wui.client.planning.RiskIncidenceRegister;
 import org.roda.wui.common.client.HistoryResolver;
 import org.roda.wui.common.client.tools.DescriptionLevelUtils;
 import org.roda.wui.common.client.tools.HistoryUtils;
@@ -79,6 +75,7 @@ import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
 import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
@@ -98,7 +95,7 @@ import config.i18n.client.ClientMessages;
  */
 public class BrowseRepresentation extends Composite {
   private static final MyUiBinder uiBinder = GWT.create(MyUiBinder.class);
-  private static final ClientMessages messages = (ClientMessages) GWT.create(ClientMessages.class);
+  private static final ClientMessages messages = GWT.create(ClientMessages.class);
 
   public static final HistoryResolver RESOLVER = new HistoryResolver() {
 
@@ -131,12 +128,12 @@ public class BrowseRepresentation extends Composite {
 
     @Override
     public void isCurrentUserPermitted(AsyncCallback<Boolean> callback) {
-      UserLogin.getInstance().checkRole(BrowseAIP.RESOLVER, callback);
+      UserLogin.getInstance().checkRole(BrowseTop.RESOLVER, callback);
     }
 
     @Override
     public List<String> getHistoryPath() {
-      return ListUtils.concat(BrowseAIP.RESOLVER.getHistoryPath(), getHistoryToken());
+      return ListUtils.concat(BrowseTop.RESOLVER.getHistoryPath(), getHistoryToken());
     }
 
     @Override
@@ -145,7 +142,7 @@ public class BrowseRepresentation extends Composite {
     }
 
     private void errorRedirect(AsyncCallback<Widget> callback) {
-      HistoryUtils.newHistory(BrowseAIP.RESOLVER);
+      HistoryUtils.newHistory(BrowseTop.RESOLVER);
       callback.onSuccess(null);
     }
   };
@@ -154,18 +151,14 @@ public class BrowseRepresentation extends Composite {
   }
 
   private List<HandlerRegistration> handlers;
+  private IndexedAIP aip;
   private IndexedRepresentation representation;
   private String aipId;
   private String repId;
   private String repUUID;
-  private ActionableWidgetBuilder<IndexedRepresentation> actionableWidgetBuilder;
-
-  private List<BreadcrumbItem> breadcrumbItems = new ArrayList<>();
 
   private static final List<String> representationFields = new ArrayList<>(Arrays.asList(RodaConstants.INDEX_UUID,
     RodaConstants.REPRESENTATION_AIP_ID, RodaConstants.REPRESENTATION_ID, RodaConstants.REPRESENTATION_TYPE));
-
-  private static final String ALL_FILTER = SearchFilters.allFilter(IndexedFile.class.getName());
 
   // Focus
   @UiField
@@ -176,23 +169,6 @@ public class BrowseRepresentation extends Composite {
   @UiField
   HTML aipState;
 
-  // IDENTIFICATION
-
-  @UiField
-  SimplePanel representationIcon;
-
-  @UiField
-  FlowPanel representationTitle;
-
-  @UiField
-  FlowPanel representationId, representationType;
-
-  @UiField
-  Label dateCreated, dateUpdated;
-
-  @UiField
-  BreadcrumbPanel breadcrumb;
-
   // DESCRIPTIVE METADATA
 
   @UiField
@@ -201,86 +177,87 @@ public class BrowseRepresentation extends Composite {
   @UiField
   Button newDescriptiveMetadata;
 
+  private SimplePanel descriptiveMetadataButtons;
+  private Map<Integer, HTMLPanel> descriptiveMetadataSavedButtons;
+
   // FILES
 
   @UiField(provided = true)
-  SearchPanel filesSearch;
-
-  @UiField(provided = true)
-  SearchFileList filesList;
+  SearchWrapper filesSearch;
 
   // DISSEMINATIONS
 
-  @UiField
-  Label disseminationsTitle;
-
   @UiField(provided = true)
-  SearchPanel disseminationsSearch;
-
-  @UiField(provided = true)
-  DIPList disseminationsList;
-
-  // SIDEBAR
+  SearchWrapper disseminationsSearch;
 
   @UiField
-  SimplePanel actionsSidebar;
+  FlowPanel center;
 
   @UiField
-  FlowPanel searchSection;
+  NavigationToolbar<IndexedRepresentation> navigationToolbar;
 
   @UiField
-  Button searchPrevious, searchNext;
+  HTML representationIcon;
+
+  @UiField
+  FlowPanel representationTitle;
+
+  @UiField
+  FlowPanel risksEventsLogs;
+
+  @UiField
+  Label dateCreatedAndModified;
 
   public BrowseRepresentation(BrowseRepresentationBundle bundle) {
     this.representation = bundle.getRepresentation();
+    this.aip = bundle.getAip();
 
     this.aipId = representation.getAipId();
     this.repId = representation.getId();
     this.repUUID = representation.getUUID();
 
-    actionableWidgetBuilder = new ActionableWidgetBuilder<>(RepresentationActions.get(bundle.getAip()));
-
     handlers = new ArrayList<>();
     String summary = messages.representationListOfFiles();
 
-    final AIPState state = bundle.getAip().getState();
+    final AIPState state = aip.getState();
     final boolean justActive = AIPState.ACTIVE.equals(state);
-    boolean selectable = true;
     boolean showFilesPath = false;
+
+    LastSelectedItemsSingleton.getInstance().setSelectedJustActive(justActive);
 
     // FILES
 
-    Filter filter = new Filter(new SimpleFilterParameter(RodaConstants.FILE_REPRESENTATION_UUID, repUUID),
+    Filter filesFilter = new Filter(new SimpleFilterParameter(RodaConstants.FILE_REPRESENTATION_UUID, repUUID),
       new EmptyKeyFilterParameter(RodaConstants.FILE_PARENT_UUID));
 
-    filesList = new SearchFileList("BrowseRepresentation_files", filter, justActive, summary, selectable,
-      showFilesPath);
-    LastSelectedItemsSingleton.getInstance().setSelectedJustActive(justActive);
-    filesList.setActionable(FileActions.get(aipId, repId));
+    ListBuilder<IndexedFile> fileListBuilder = new ListBuilder<>(() -> new SearchFileList(showFilesPath),
+      new AsyncTableCellOptions<>(IndexedFile.class, "BrowseRepresentation_files").withFilter(filesFilter)
+        .withJustActive(justActive).withSummary(summary).bindOpener());
 
-    ListSelectionUtils.bindBrowseOpener(filesList);
-
-    filesSearch = new SearchPanel(filter, ALL_FILTER, true, messages.searchPlaceHolder(), false, false, true);
-    filesSearch.setList(filesList);
+    filesSearch = new SearchWrapper(false).createListAndSearchPanel(fileListBuilder,
+      FileActions.get(aipId, repId, aip.getPermissions()));
 
     // DISSEMINATIONS
-    disseminationsList = new DIPList("BrowseRepresentation_disseminations", Filter.NULL,
-      messages.listOfDisseminations(), true);
-    disseminationsList.setActionable(DisseminationActions.get());
-    ListSelectionUtils.bindBrowseOpener(disseminationsList);
 
-    disseminationsSearch = new SearchPanel(Filter.NULL, RodaConstants.DIP_SEARCH, true, messages.searchPlaceHolder(),
-      false, false, true);
-    disseminationsSearch.setList(disseminationsList);
+    Filter disseminationsFilter = new Filter(
+      new SimpleFilterParameter(RodaConstants.DIP_REPRESENTATION_UUIDS, repUUID));
+
+    ListBuilder<IndexedDIP> disseminationsListBuilder = new ListBuilder<>(DIPList::new,
+      new AsyncTableCellOptions<>(IndexedDIP.class, "BrowseRepresentation_disseminations")
+        .withFilter(disseminationsFilter).withSummary(messages.listOfDisseminations()).bindOpener()
+        .withJustActive(justActive));
+
+    disseminationsSearch = new SearchWrapper(false).createListAndSearchPanel(disseminationsListBuilder,
+      DisseminationActions.get());
 
     // INIT
     initWidget(uiBinder.createAndBindUi(this));
 
     updateLayout(bundle, state, justActive);
 
-    breadcrumbItems = BreadcrumbUtils.getRepresentationBreadcrumbs(bundle);
-    breadcrumb.updatePath(breadcrumbItems);
-    breadcrumb.setVisible(true);
+    // NAVIGATION TOOLBAR
+    navigationToolbar.setObject(representation, aip.getPermissions());
+    navigationToolbar.show();
 
     // DESCRIPTIVE METADATA
 
@@ -305,7 +282,7 @@ public class BrowseRepresentation extends Composite {
           final HTML html = pair.getSecond();
           final DescriptiveMetadataViewBundle bundle = bundles.get(descId);
           if (html.getText().length() == 0) {
-            getDescriptiveMetadataHTML(descId, bundle, new AsyncCallback<SafeHtml>() {
+            getDescriptiveMetadataHTML(descId, bundle, event.getSelectedItem(), new AsyncCallback<SafeHtml>() {
 
               @Override
               public void onFailure(Throwable caught) {
@@ -340,8 +317,24 @@ public class BrowseRepresentation extends Composite {
     addTab.getElement().setId("representationNewDescriptiveMetadata");
     addTab.getParent().addStyleName("addTabWrapper");
 
+    PermissionUtils.bindPermission(newDescriptiveMetadata, aip.getPermissions(),
+      "org.roda.wui.api.controllers.Browser.createDescriptiveMetadataFile");
+
     handlers.add(tabHandler);
     handlers.add(addTabHandler);
+
+    descriptiveMetadataSavedButtons = new HashMap<>();
+    descriptiveMetadataButtons = new SimplePanel();
+    descriptiveMetadataButtons.addStyleName("descriptiveMetadataTabButtons");
+    itemMetadata.getTabBar().getElement().getStyle().clearProperty("width");
+    itemMetadata.getTabBar().getElement().getParentElement().insertFirst(descriptiveMetadataButtons.getElement());
+    itemMetadata.addSelectionHandler(event -> {
+      if (descriptiveMetadataSavedButtons.containsKey(event.getSelectedItem())) {
+        descriptiveMetadataButtons.setWidget(descriptiveMetadataSavedButtons.get(event.getSelectedItem()));
+      } else {
+        descriptiveMetadataButtons.clear();
+      }
+    });
 
     if (!bundle.getRepresentationDescriptiveMetadata().isEmpty()) {
       newDescriptiveMetadata.setVisible(false);
@@ -354,16 +347,10 @@ public class BrowseRepresentation extends Composite {
 
     // DISSEMINATIONS (POST-INIT)
     if (bundle.getDipCount() > 0) {
-      Filter disseminationsFilter = new Filter(
-        new SimpleFilterParameter(RodaConstants.DIP_REPRESENTATION_UUIDS, repUUID));
-      disseminationsList.set(disseminationsFilter, state.equals(AIPState.ACTIVE), Facets.NONE);
-      disseminationsSearch.setDefaultFilter(disseminationsFilter, true);
-      disseminationsSearch.clearSearchInputBox();
+      disseminationsSearch.setFilter(IndexedDIP.class, disseminationsFilter);
     }
-    disseminationsList.getParent().setVisible(bundle.getDipCount() > 0);
-
-    ListSelectionUtils.bindLayout(representation, searchPrevious, searchNext, keyboardFocus, true, false, false,
-      searchSection);
+    disseminationsSearch.setVisible(bundle.getDipCount() > 0);
+    disseminationsSearch.getParent().setVisible(bundle.getDipCount() > 0);
 
     // CSS
     this.addStyleName("browse");
@@ -385,82 +372,44 @@ public class BrowseRepresentation extends Composite {
     aipState.setVisible(!justActive);
 
     // IDENTIFICATION
+    representationIcon.setHTML(DescriptionLevelUtils.getRepresentationTypeIcon(representation.getType(), false));
+    Sliders.createRepresentationInfoSlider(center, navigationToolbar.getSidebarButton(), bundle);
 
-    HTMLPanel representationIconHtmlPanel = new HTMLPanel(
-      DescriptionLevelUtils.getRepresentationTypeIcon(representation.getType(), false));
-    representationIconHtmlPanel.addStyleName("browseItemIcon-other");
-    representationIcon.setWidget(representationIconHtmlPanel);
+    Anchor risksLink = new Anchor(messages.aipRiskIncidences(bundle.getRiskIncidenceCount()), HistoryUtils
+      .createHistoryHashLink(RiskIncidenceRegister.RESOLVER, representation.getAipId(), representation.getId()));
+    Anchor eventsLink = new Anchor(messages.aipEvents(bundle.getPreservationEventCount()), HistoryUtils
+      .createHistoryHashLink(PreservationEvents.BROWSE_RESOLVER, representation.getAipId(), representation.getUUID()));
+
+    risksEventsLogs.clear();
+    risksEventsLogs.add(risksLink);
+    risksEventsLogs.add(new Label(" " + messages.and() + " "));
+    risksEventsLogs.add(eventsLink);
+
+    if (representation.getCreatedOn() != null && StringUtils.isNotBlank(representation.getCreatedBy())
+      && representation.getUpdatedOn() != null && StringUtils.isNotBlank(representation.getUpdatedBy())) {
+      dateCreatedAndModified.setText(messages.dateCreatedAndUpdated(Humanize.formatDate(representation.getCreatedOn()),
+        representation.getCreatedBy(), Humanize.formatDate(representation.getUpdatedOn()),
+        representation.getUpdatedBy()));
+    } else if (representation.getCreatedOn() != null && StringUtils.isNotBlank(representation.getCreatedBy())) {
+      dateCreatedAndModified.setText(
+        messages.dateCreated(Humanize.formatDateTime(representation.getCreatedOn()), representation.getCreatedBy()));
+    } else if (representation.getUpdatedOn() != null && StringUtils.isNotBlank(representation.getUpdatedBy())) {
+      dateCreatedAndModified.setText(
+        messages.dateUpdated(Humanize.formatDateTime(representation.getUpdatedOn()), representation.getUpdatedBy()));
+    } else {
+      dateCreatedAndModified.setText("");
+    }
 
     String title = representation.getTitle() != null ? representation.getTitle() : representation.getType();
     title = title == null ? representation.getId() : title;
     representationTitle.clear();
     HtmlSnippetUtils.getRepresentationTypeHTML(representationTitle, title, representation.getRepresentationStates());
 
-    representationId.clear();
-    final String idFilter = RepresentationInformationUtils.createRepresentationInformationFilter(
-      RodaConstants.INDEX_REPRESENTATION, RodaConstants.INDEX_UUID, representation.getUUID());
-    RepresentationInformationHelper.addFieldWithRepresentationInformationIcon(
-      SafeHtmlUtils.fromString(messages.representationId() + ": " + representation.getId()), idFilter, representationId,
-      bundle.getRepresentationInformationFields().contains(RodaConstants.INDEX_UUID));
-
-    if (representation.getType() != null) {
-      representationType.clear();
-      final String typeFilter = RepresentationInformationUtils.createRepresentationInformationFilter(
-        RodaConstants.INDEX_REPRESENTATION, RodaConstants.REPRESENTATION_TYPE, representation.getType());
-      RepresentationInformationHelper.addFieldWithRepresentationInformationIcon(
-        SafeHtmlUtils.fromString(messages.representationType() + ": " + representation.getType()), typeFilter,
-        representationType, bundle.getRepresentationInformationFields().contains(RodaConstants.REPRESENTATION_TYPE));
-    }
-
-    if (!breadcrumbItems.isEmpty()) {
-      breadcrumbItems.remove(breadcrumbItems.size() - 1);
-      breadcrumbItems.add(BreadcrumbUtils.getBreadcrumbItem(representation));
-      breadcrumb.updatePath(breadcrumbItems);
-    }
-
-    if (representation.getCreatedOn() != null) {
-      dateCreated.setText(
-        messages.dateCreated(Humanize.formatDateTime(representation.getCreatedOn()), representation.getCreatedBy()));
-    }
-
-    if (representation.getUpdatedOn() != null) {
-      dateUpdated.setText(
-        messages.dateUpdated(Humanize.formatDateTime(representation.getUpdatedOn()), representation.getUpdatedBy()));
-    }
-
-    // SIDEBAR
-    actionableWidgetBuilder.withCallback(new NoAsyncCallback<Actionable.ActionImpact>() {
-      @Override
-      public void onSuccess(Actionable.ActionImpact impact) {
-        if (Actionable.ActionImpact.UPDATED.equals(impact)) {
-          BrowserService.Util.getInstance().retrieve(IndexedRepresentation.class.getName(), representation.getUUID(),
-            representationFields, new AsyncCallback<IndexedRepresentation>() {
-
-              @Override
-              public void onFailure(Throwable caught) {
-                AsyncCallbackUtils.defaultFailureTreatment(caught);
-              }
-
-              @Override
-              public void onSuccess(IndexedRepresentation rep) {
-                representation = rep;
-                updateLayout(bundle, state, justActive);
-              }
-            });
-        }
-      }
-    });
-    actionsSidebar.setWidget(actionableWidgetBuilder.buildListWithObjects(new ActionableObject<>(representation)));
-  }
-
-  @Override
-  protected void onLoad() {
-    super.onLoad();
-    JavascriptUtils.stickSidebar();
+    navigationToolbar.updateBreadcrumb(bundle);
   }
 
   private void getDescriptiveMetadataHTML(final String descId, final DescriptiveMetadataViewBundle bundle,
-    final AsyncCallback<SafeHtml> callback) {
+    final Integer selectedIndex, final AsyncCallback<SafeHtml> callback) {
     SafeUri uri = RestUtils.createRepresentationDescriptiveMetadataHTMLUri(aipId, repId, descId);
     RequestBuilder requestBuilder = new RequestBuilder(RequestBuilder.GET, uri.asString());
     try {
@@ -474,7 +423,8 @@ public class BrowseRepresentation extends Composite {
             SafeHtmlBuilder b = new SafeHtmlBuilder();
             b.append(SafeHtmlUtils.fromSafeConstant("<div class='descriptiveMetadataLinks'>"));
 
-            if (bundle.hasHistory()) {
+            if (bundle.hasHistory() && PermissionUtils.hasPermissions(aip.getPermissions(),
+              "org.roda.wui.api.controllers.Browser.retrieveDescriptiveMetadataVersionsBundle")) {
               // History link
               String historyLink = HistoryUtils.createHistoryHashLink(DescriptiveMetadataHistory.RESOLVER, aipId, repId,
                 descId);
@@ -483,11 +433,14 @@ public class BrowseRepresentation extends Composite {
               b.append(SafeHtmlUtils.fromSafeConstant(historyLinkHtml));
             }
             // Edit link
-            String editLink = HistoryUtils.createHistoryHashLink(EditDescriptiveMetadata.RESOLVER, aipId, repId,
-              descId);
-            String editLinkHtml = "<a href='" + editLink
-              + "' class='toolbarLink' id='representationEditDescriptiveMetadata'><i class='fa fa-edit'></i></a>";
-            b.append(SafeHtmlUtils.fromSafeConstant(editLinkHtml));
+            if (PermissionUtils.hasPermissions(aip.getPermissions(),
+              "org.roda.wui.api.controllers.Browser.updateDescriptiveMetadataFile")) {
+              String editLink = HistoryUtils.createHistoryHashLink(EditDescriptiveMetadata.RESOLVER, aipId, repId,
+                descId);
+              String editLinkHtml = "<a href='" + editLink
+                + "' class='toolbarLink' id='representationEditDescriptiveMetadata'><i class='fa fa-edit'></i></a>";
+              b.append(SafeHtmlUtils.fromSafeConstant(editLinkHtml));
+            }
 
             // Download link
             SafeUri downloadUri = RestUtils.createRepresentationDescriptiveMetadataDownloadUri(aipId, repId, descId);
@@ -496,6 +449,12 @@ public class BrowseRepresentation extends Composite {
             b.append(SafeHtmlUtils.fromSafeConstant(downloadLinkHtml));
 
             b.append(SafeHtmlUtils.fromSafeConstant("</div>"));
+
+            HTMLPanel buttons = new HTMLPanel(b.toSafeHtml());
+            descriptiveMetadataSavedButtons.put(selectedIndex, buttons);
+            descriptiveMetadataButtons.setWidget(buttons);
+
+            b = new SafeHtmlBuilder();
 
             b.append(SafeHtmlUtils.fromSafeConstant("<div class='descriptiveMetadataHTML'>"));
             b.append(SafeHtmlUtils.fromTrustedString(html));
@@ -507,7 +466,7 @@ public class BrowseRepresentation extends Composite {
             String text = response.getText();
             String message;
             try {
-              RestErrorOverlayType error = (RestErrorOverlayType) JsonUtils.safeEval(text);
+              RestErrorOverlayType error = JsonUtils.safeEval(text);
               message = error.getMessage();
             } catch (IllegalArgumentException e) {
               message = text;
@@ -516,7 +475,8 @@ public class BrowseRepresentation extends Composite {
             SafeHtmlBuilder b = new SafeHtmlBuilder();
             b.append(SafeHtmlUtils.fromSafeConstant("<div class='descriptiveMetadataLinks'>"));
 
-            if (bundle.hasHistory()) {
+            if (bundle.hasHistory() && PermissionUtils.hasPermissions(aip.getPermissions(),
+              "org.roda.wui.api.controllers.Browser.retrieveDescriptiveMetadataVersionsBundle")) {
               // History link
               String historyLink = HistoryUtils.createHistoryHashLink(DescriptiveMetadataHistory.RESOLVER, aipId, repId,
                 descId);
@@ -526,10 +486,13 @@ public class BrowseRepresentation extends Composite {
             }
 
             // Edit link
-            String editLink = HistoryUtils.createHistoryHashLink(EditDescriptiveMetadata.RESOLVER, aipId, repId,
-              descId);
-            String editLinkHtml = "<a href='" + editLink + "' class='toolbarLink'><i class='fa fa-edit'></i></a>";
-            b.append(SafeHtmlUtils.fromSafeConstant(editLinkHtml));
+            if (PermissionUtils.hasPermissions(aip.getPermissions(),
+              "org.roda.wui.api.controllers.Browser.updateDescriptiveMetadataFile")) {
+              String editLink = HistoryUtils.createHistoryHashLink(EditDescriptiveMetadata.RESOLVER, aipId, repId,
+                descId);
+              String editLinkHtml = "<a href='" + editLink + "' class='toolbarLink'><i class='fa fa-edit'></i></a>";
+              b.append(SafeHtmlUtils.fromSafeConstant(editLinkHtml));
+            }
 
             b.append(SafeHtmlUtils.fromSafeConstant("</div>"));
 

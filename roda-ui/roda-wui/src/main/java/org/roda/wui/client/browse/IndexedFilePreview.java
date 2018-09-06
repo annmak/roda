@@ -7,7 +7,7 @@
  */
 package org.roda.wui.client.browse;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import org.roda.core.data.common.RodaConstants;
 import org.roda.core.data.v2.index.filter.Filter;
@@ -15,17 +15,18 @@ import org.roda.core.data.v2.index.filter.SimpleFilterParameter;
 import org.roda.core.data.v2.index.select.SelectedItems;
 import org.roda.core.data.v2.index.select.SelectedItemsList;
 import org.roda.core.data.v2.ip.IndexedFile;
+import org.roda.core.data.v2.ip.Permissions;
 import org.roda.wui.client.common.LastSelectedItemsSingleton;
 import org.roda.wui.client.common.actions.FileActions;
 import org.roda.wui.client.common.lists.SearchFileList;
-import org.roda.wui.client.common.lists.pagination.ListSelectionUtils;
+import org.roda.wui.client.common.lists.utils.AsyncTableCellOptions;
 import org.roda.wui.client.common.lists.utils.ClientSelectedItemsUtils;
-import org.roda.wui.client.common.search.SearchPanel;
+import org.roda.wui.client.common.lists.utils.ListBuilder;
+import org.roda.wui.client.common.search.SearchWrapper;
 import org.roda.wui.common.client.tools.RestUtils;
 
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.Command;
-import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.Widget;
 
 import config.i18n.client.ClientMessages;
@@ -34,50 +35,41 @@ public class IndexedFilePreview extends BitstreamPreview<IndexedFile> {
   private static final ClientMessages messages = GWT.create(ClientMessages.class);
   private static final boolean CONTENT_DISPOSITION_INLINE = true;
 
-  private SearchFileList folderList = null;
-  private boolean justActive = true;
+  private SearchWrapper searchWrapper = null;
+  private boolean justActive;
+  private Permissions permissions;
 
-  public IndexedFilePreview(Viewers viewers, IndexedFile file, boolean justActive, Command onPreviewFailure) {
+  public IndexedFilePreview(Viewers viewers, IndexedFile file, boolean justActive, Permissions permissions,
+    Command onPreviewFailure) {
     super(viewers, RestUtils.createRepresentationFileDownloadUri(file.getUUID(), CONTENT_DISPOSITION_INLINE),
       file.getFileFormat(), file.getOriginalName() != null ? file.getOriginalName() : file.getId(), file.getSize(),
       file.isDirectory(), onPreviewFailure, file);
     this.justActive = justActive;
+    this.permissions = permissions;
   }
 
   @Override
   protected Widget directoryPreview() {
     Filter filter = new Filter(new SimpleFilterParameter(RodaConstants.FILE_PARENT_UUID, getObject().getUUID()));
 
-    final FlowPanel layout = new FlowPanel();
-
-    final SearchPanel fileSearch = new SearchPanel(filter, RodaConstants.FILE_SEARCH, true,
-      messages.searchPlaceHolder(), false, false, true);
-
-    boolean selectable = true;
-    boolean showFilesPath = false;
-
-    this.folderList = new SearchFileList("IndexedFilePreview_files", filter, justActive,
-      messages.representationListOfFiles(),
-      selectable, showFilesPath);
+    ListBuilder<IndexedFile> folderListBuilder = new ListBuilder<>(SearchFileList::new,
+      new AsyncTableCellOptions<>(IndexedFile.class, "IndexedFilePreview_files").withFilter(filter)
+        .withSummary(messages.representationListOfFiles()).withJustActive(justActive).bindOpener());
 
     LastSelectedItemsSingleton.getInstance().setSelectedJustActive(justActive);
-    this.folderList.setActionable(FileActions.get(getObject().getAipId(), getObject().getRepresentationId()));
 
-    fileSearch.setList(folderList);
-
-    layout.add(fileSearch);
-    layout.add(folderList);
-
-    ListSelectionUtils.bindBrowseOpener(folderList);
-
-    return layout;
+    searchWrapper = new SearchWrapper(false).createListAndSearchPanel(folderListBuilder,
+      FileActions.get(getObject().getAipId(), getObject().getRepresentationId(), permissions),
+      messages.searchPlaceHolder());
+    return searchWrapper;
   }
 
   public SelectedItems<IndexedFile> getSelected() {
 
-    SelectedItems<IndexedFile> ret = SelectedItemsList.create(IndexedFile.class, Arrays.asList(getObject().getUUID()));
-    if (folderList != null) {
-      SelectedItems<IndexedFile> listSelected = folderList.getSelected();
+    SelectedItems<IndexedFile> ret = SelectedItemsList.create(IndexedFile.class,
+      Collections.singletonList(getObject().getUUID()));
+    if (searchWrapper != null) {
+      SelectedItems<IndexedFile> listSelected = searchWrapper.getSelectedItems(IndexedFile.class);
 
       if (!ClientSelectedItemsUtils.isEmpty(listSelected)) {
         ret = listSelected;
@@ -87,8 +79,8 @@ public class IndexedFilePreview extends BitstreamPreview<IndexedFile> {
   }
 
   public void refresh() {
-    if (folderList != null) {
-      folderList.refresh();
+    if (searchWrapper != null) {
+      searchWrapper.refreshCurrentList();
     }
   }
 

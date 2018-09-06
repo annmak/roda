@@ -2,7 +2,6 @@ package org.roda.core.index.schema;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrInputDocument;
@@ -19,6 +18,7 @@ import org.roda.core.data.v2.ip.HasPermissions;
 import org.roda.core.data.v2.ip.HasState;
 import org.roda.core.data.v2.ip.Permissions;
 import org.roda.core.data.v2.ip.SetsUUID;
+import org.roda.core.index.IndexingAdditionalInfo;
 import org.roda.core.index.utils.SolrUtils;
 
 public abstract class AbstractSolrCollection<I extends IsIndexed, M extends IsModelObject>
@@ -38,6 +38,8 @@ public abstract class AbstractSolrCollection<I extends IsIndexed, M extends IsMo
         .setDefaultValue(AIPState.getDefault().toString()));
     }
 
+    ret.add(SolrCollection.getSearchField());
+
     return ret;
   }
 
@@ -55,8 +57,7 @@ public abstract class AbstractSolrCollection<I extends IsIndexed, M extends IsMo
   }
 
   @Override
-  public SolrInputDocument toSolrDocument(M object, Map<String, Object> preCalculatedFields,
-    Map<String, Object> accumulators, SolrCollection.Flags... flags)
+  public SolrInputDocument toSolrDocument(M object, IndexingAdditionalInfo info)
     throws RequestNotValidException, GenericException, NotFoundException, AuthorizationDeniedException {
 
     SolrInputDocument doc = new SolrInputDocument();
@@ -78,8 +79,8 @@ public abstract class AbstractSolrCollection<I extends IsIndexed, M extends IsMo
       }
     }
 
-    if (preCalculatedFields != null) {
-      preCalculatedFields.forEach((k, v) -> doc.addField(k, v));
+    if (info.getPreCalculatedFields() != null) {
+      info.getPreCalculatedFields().forEach((k, v) -> doc.addField(k, v));
     }
 
     return doc;

@@ -56,7 +56,6 @@ import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.HTMLPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
@@ -110,7 +109,7 @@ public class IngestTransfer extends Composite {
   }
 
   private static MyUiBinder uiBinder = GWT.create(MyUiBinder.class);
-  private static ClientMessages messages = (ClientMessages) GWT.create(ClientMessages.class);
+  private static final ClientMessages messages = GWT.create(ClientMessages.class);
 
   private TransferredResource resource;
   private ActionableWidgetBuilder<TransferredResource> actionableWidgetBuilder;
@@ -134,7 +133,7 @@ public class IngestTransfer extends Composite {
   Label lastScanned;
 
   @UiField
-  SimplePanel itemIcon;
+  HTML itemIcon;
 
   @UiField
   Label itemTitle;
@@ -146,22 +145,11 @@ public class IngestTransfer extends Composite {
   SimplePanel actionsSidebar;
 
   private IngestTransfer() {
-    resourceSearch = new TransferredResourceSearch("IngestTransfer_transferredResources");
-    resourceSearch.defaultFilters(new Filter(new EmptyKeyFilterParameter(RodaConstants.TRANSFERRED_RESOURCE_PARENT_ID)));
-    resourceSearch.getList().setActionable(TransferredResourceActions.get(null));
-
-    actionableWidgetBuilder = new ActionableWidgetBuilder<>(TransferredResourceActions.get(null));
-
-    initWidget(uiBinder.createAndBindUi(this));
-
-    ingestTransferDescription.add(new HTMLWidgetWrapper("IngestTransferDescription.html"));
-
-    actionableWidgetBuilder.withCallback(new NoAsyncCallback<Actionable.ActionImpact>() {
-
+    NoAsyncCallback<Actionable.ActionImpact> actionCallback = new NoAsyncCallback<Actionable.ActionImpact>() {
       @Override
       public void onFailure(Throwable caught) {
         super.onFailure(caught);
-        resourceSearch.getList().refresh();
+        resourceSearch.refresh();
       }
 
       @Override
@@ -172,7 +160,7 @@ public class IngestTransfer extends Composite {
           } else {
             view();
           }
-          resourceSearch.getList().refresh();
+          resourceSearch.refresh();
         } else if (Actionable.ActionImpact.DESTROYED.equals(impact)) {
           String parentUUID = resource != null ? resource.getParentUUID() : null;
           if (parentUUID != null) {
@@ -182,8 +170,24 @@ public class IngestTransfer extends Composite {
           }
         }
       }
-    });
+    };
 
+    // TODO tmp activar o actionable callback acima quando o botao de actionable que
+    // está dentro da pesquisa é clicado
+
+    resourceSearch = new TransferredResourceSearch("IngestTransfer_transferredResources",
+      new Filter(new EmptyKeyFilterParameter(RodaConstants.TRANSFERRED_RESOURCE_PARENT_ID)),
+      TransferredResourceActions.get(null));
+
+    actionableWidgetBuilder = new ActionableWidgetBuilder<>(TransferredResourceActions.get(null));
+
+    initWidget(uiBinder.createAndBindUi(this));
+
+    ingestTransferDescription.add(new HTMLWidgetWrapper("IngestTransferDescription.html"));
+
+    actionableWidgetBuilder.withCallback(actionCallback);
+
+    // TODO 20180807 bferreira: remove sidebar and use actionable in searchwrapper
     actionsSidebar
       .setWidget(actionableWidgetBuilder.buildListWithObjects(new ActionableObject<>(TransferredResource.class)));
   }
@@ -215,17 +219,17 @@ public class IngestTransfer extends Composite {
     ingestTransferTitle.setVisible(false);
     ingestTransferDescription.setVisible(false);
 
-    HTML itemIconHtmlPanel = new HTML(
-      r.isFile() ? DescriptionLevelUtils.getElementLevelIconSafeHtml(RodaConstants.VIEW_REPRESENTATION_FILE, false)
-        : DescriptionLevelUtils.getElementLevelIconSafeHtml(RodaConstants.VIEW_REPRESENTATION_FOLDER, false));
-    itemIconHtmlPanel.addStyleName("browseItemIcon-other");
+    if (r.isFile()) {
+      itemIcon
+        .setHTML(DescriptionLevelUtils.getElementLevelIconSafeHtml(RodaConstants.VIEW_REPRESENTATION_FILE, false));
+    } else {
+      itemIcon
+        .setHTML(DescriptionLevelUtils.getElementLevelIconSafeHtml(RodaConstants.VIEW_REPRESENTATION_FOLDER, false));
+    }
 
-    itemIcon.setWidget(itemIconHtmlPanel);
     itemTitle.setText(r.getName());
     itemDates.setText(messages.ingestTransferItemInfo(Humanize.formatDateTime(r.getCreationDate()),
       Humanize.readableFileSize(r.getSize())));
-    itemTitle.removeStyleName("browseTitle-allCollections");
-    itemIcon.getParent().removeStyleName("browseTitle-allCollections-wrapper");
 
     if (r.isFile()) {
       resourceSearch.setVisible(false);
@@ -233,7 +237,7 @@ public class IngestTransfer extends Composite {
     } else {
       Filter filter = new Filter(
         new SimpleFilterParameter(RodaConstants.TRANSFERRED_RESOURCE_PARENT_ID, r.getRelativePath()));
-      resourceSearch.defaultFilters(filter);
+      resourceSearch.setDefaultFilters(filter);
       resourceSearch.setVisible(true);
       download.setVisible(false);
     }
@@ -254,19 +258,14 @@ public class IngestTransfer extends Composite {
     ingestTransferTitle.setVisible(true);
     ingestTransferDescription.setVisible(true);
 
-    HTMLPanel itemIconHtmlPanel = DescriptionLevelUtils.getTopIconHTMLPanel();
-    itemIconHtmlPanel.addStyleName("browseItemIcon-all");
-
-    itemIcon.setWidget(itemIconHtmlPanel);
+    itemIcon.setHTML(DescriptionLevelUtils.getTopIconSafeHtml());
     itemTitle.setText(messages.ingestAllTransferredPackages());
     itemDates.setText("");
-    itemTitle.addStyleName("browseTitle-allCollections");
-    itemIcon.getParent().addStyleName("browseTitle-allCollections-wrapper");
 
     resourceSearch.setVisible(true);
     download.setVisible(false);
 
-    resourceSearch.defaultFilters(DEFAULT_FILTER);
+    resourceSearch.setDefaultFilters(DEFAULT_FILTER);
     breadcrumb.setVisible(false);
 
     lastScanned.setText("");

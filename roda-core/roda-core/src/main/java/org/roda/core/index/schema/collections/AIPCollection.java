@@ -2,6 +2,7 @@ package org.roda.core.index.schema.collections;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +19,8 @@ import org.roda.core.data.exceptions.NotFoundException;
 import org.roda.core.data.exceptions.RequestNotValidException;
 import org.roda.core.data.v2.ip.AIP;
 import org.roda.core.data.v2.ip.IndexedAIP;
+import org.roda.core.index.IndexingAdditionalInfo;
+import org.roda.core.index.IndexingAdditionalInfo.Flags;
 import org.roda.core.index.schema.AbstractSolrCollection;
 import org.roda.core.index.schema.CopyField;
 import org.roda.core.index.schema.Field;
@@ -28,9 +31,6 @@ import org.roda.core.storage.Directory;
 import org.roda.core.storage.StorageService;
 
 public class AIPCollection extends AbstractSolrCollection<IndexedAIP, AIP> {
-
-  // private static final Logger LOGGER =
-  // LoggerFactory.getLogger(AIPCollection.class);
 
   @Override
   public Class<IndexedAIP> getIndexClass() {
@@ -90,7 +90,6 @@ public class AIPCollection extends AbstractSolrCollection<IndexedAIP, AIP> {
     fields.add(new Field(RodaConstants.AIP_DATE_FINAL, Field.TYPE_DATE));
 
     fields.add(SolrCollection.getSortFieldOf(RodaConstants.AIP_TITLE));
-    fields.add(SolrCollection.getSearchField());
 
     return fields;
   }
@@ -104,11 +103,10 @@ public class AIPCollection extends AbstractSolrCollection<IndexedAIP, AIP> {
   }
 
   @Override
-  public SolrInputDocument toSolrDocument(AIP aip, Map<String, Object> preCalculatedFields,
-    Map<String, Object> accumulators, Flags... flags)
+  public SolrInputDocument toSolrDocument(AIP aip, IndexingAdditionalInfo info)
     throws RequestNotValidException, GenericException, NotFoundException, AuthorizationDeniedException {
-    boolean safemode = Arrays.asList(flags).contains(Flags.SAFE_MODE_ON);
-    SolrInputDocument doc = super.toSolrDocument(aip, preCalculatedFields, accumulators, flags);
+    boolean safemode = info.getFlags().contains(Flags.SAFE_MODE_ON);
+    SolrInputDocument doc = super.toSolrDocument(aip, info);
 
     doc.addField(RodaConstants.AIP_PARENT_ID, aip.getParentId());
     doc.addField(RodaConstants.AIP_TYPE, aip.getType());
@@ -173,9 +171,30 @@ public class AIPCollection extends AbstractSolrCollection<IndexedAIP, AIP> {
     return doc;
   }
 
+  public static class Info extends IndexingAdditionalInfo {
+    private final List<String> ancestors;
+    private final boolean safemode;
+
+    public Info(List<String> ancestors, boolean safemode) {
+      super();
+      this.ancestors = ancestors;
+      this.safemode = safemode;
+    }
+
+    @Override
+    public Map<String, Object> getPreCalculatedFields() {
+      return Collections.singletonMap(RodaConstants.AIP_ANCESTORS, ancestors);
+    }
+
+    @Override
+    public List<Flags> getFlags() {
+      return Arrays.asList(safemode ? Flags.SAFE_MODE_ON : Flags.SAFE_MODE_OFF);
+    }
+
+  }
+
   @Override
   public IndexedAIP fromSolrDocument(SolrDocument doc, List<String> fieldsToReturn) throws GenericException {
-
     final IndexedAIP ret = super.fromSolrDocument(doc, fieldsToReturn);
 
     final String parentId = SolrUtils.objectToString(doc.get(RodaConstants.AIP_PARENT_ID), null);

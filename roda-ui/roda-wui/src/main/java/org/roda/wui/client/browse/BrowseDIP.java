@@ -32,7 +32,10 @@ import org.roda.wui.client.browse.bundle.DipBundle;
 import org.roda.wui.client.common.UserLogin;
 import org.roda.wui.client.common.lists.DIPFileList;
 import org.roda.wui.client.common.lists.pagination.ListSelectionUtils;
-import org.roda.wui.client.common.search.SearchPanel;
+import org.roda.wui.client.common.lists.pagination.ListSelectionUtils.ProcessRelativeItem;
+import org.roda.wui.client.common.lists.utils.AsyncTableCellOptions;
+import org.roda.wui.client.common.lists.utils.ListBuilder;
+import org.roda.wui.client.common.search.SearchWrapper;
 import org.roda.wui.client.common.slider.Sliders;
 import org.roda.wui.client.common.utils.AsyncCallbackUtils;
 import org.roda.wui.client.common.utils.HtmlSnippetUtils;
@@ -55,6 +58,7 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 
 import config.i18n.client.ClientMessages;
@@ -90,7 +94,7 @@ public class BrowseDIP extends Composite {
 
     @Override
     public List<String> getHistoryPath() {
-      return ListUtils.concat(BrowseAIP.RESOLVER.getHistoryPath(), getHistoryToken());
+      return ListUtils.concat(BrowseTop.RESOLVER.getHistoryPath(), getHistoryToken());
     }
 
     @Override
@@ -123,7 +127,7 @@ public class BrowseDIP extends Composite {
     }
 
     private void errorRedirect(AsyncCallback<Widget> callback) {
-      HistoryUtils.newHistory(BrowseAIP.RESOLVER);
+      HistoryUtils.newHistory(BrowseTop.RESOLVER);
       callback.onSuccess(null);
     }
 
@@ -134,8 +138,6 @@ public class BrowseDIP extends Composite {
 
   private static MyUiBinder uiBinder = GWT.create(MyUiBinder.class);
   private static final ClientMessages messages = GWT.create(ClientMessages.class);
-
-  public static final int DEFAULT_DIPFILE_INDEX = 0;
   public static final Sorter DEFAULT_DIPFILE_SORTER = new Sorter(new SortParameter(RodaConstants.DIPFILE_ID, false));
 
   // system
@@ -151,7 +153,6 @@ public class BrowseDIP extends Composite {
   private DIPFile dipFile;
   private List<DIPFile> dipFileAncestors;
 
-  @SuppressWarnings("unused")
   private ClientLogger logger = new ClientLogger(getClass().getName());
 
   // interface
@@ -178,18 +179,6 @@ public class BrowseDIP extends Composite {
   @UiField
   AccessibleFocusPanel previousButton, nextButton, dipOptionsButton;
 
-  /**
-   * Create a new panel to view a representation
-   * 
-   * @param viewers
-   * @param index
-   * @param aipId
-   * @param itemBundle
-   * @param representationUUID
-   * @param fileUUID
-   * @param file
-   * 
-   */
   public BrowseDIP(Viewers viewers, DipBundle bundle) {
     this.viewers = viewers;
 
@@ -252,7 +241,7 @@ public class BrowseDIP extends Composite {
       refererBreadcrumb.updatePath(BreadcrumbUtils.getFileBreadcrumbs(aip, representation, file));
       refererBreadcrumb.setVisible(true);
       ListSelectionUtils.bindLayout(file, refererPreviousButton, refererNextButton, keyboardFocus, requireCtrlModifier,
-        requireShiftModifier, requireAltModifier, new ListSelectionUtils.ProcessRelativeItem<IndexedFile>() {
+        requireShiftModifier, requireAltModifier, new ProcessRelativeItem<IndexedFile>() {
 
           @Override
           public void process(final IndexedFile file) {
@@ -267,7 +256,7 @@ public class BrowseDIP extends Composite {
       refererBreadcrumb.setVisible(true);
       ListSelectionUtils.bindLayout(representation, refererPreviousButton, refererNextButton, keyboardFocus,
         requireCtrlModifier, requireShiftModifier, requireAltModifier,
-        new ListSelectionUtils.ProcessRelativeItem<IndexedRepresentation>() {
+        new ProcessRelativeItem<IndexedRepresentation>() {
 
           @Override
           public void process(final IndexedRepresentation representation) {
@@ -282,7 +271,7 @@ public class BrowseDIP extends Composite {
       refererBreadcrumb.updatePath(BreadcrumbUtils.getAipBreadcrumbs(aip));
       refererBreadcrumb.setVisible(true);
       ListSelectionUtils.bindLayout(aip, refererPreviousButton, refererNextButton, keyboardFocus, requireCtrlModifier,
-        requireShiftModifier, requireAltModifier, new ListSelectionUtils.ProcessRelativeItem<IndexedAIP>() {
+        requireShiftModifier, requireAltModifier, new ProcessRelativeItem<IndexedAIP>() {
 
           @Override
           public void process(final IndexedAIP aip) {
@@ -335,20 +324,16 @@ public class BrowseDIP extends Composite {
     } else {
       final Filter filter = new Filter(new SimpleFilterParameter(RodaConstants.DIPFILE_DIP_ID, dip.getId()),
         new EmptyKeyFilterParameter(RodaConstants.DIPFILE_PARENT_UUID));
-      final SearchPanel dipFileSearch = new SearchPanel(filter, RodaConstants.DIPFILE_SEARCH, true,
-        messages.searchPlaceHolder(), false, false, true);
 
-      final DIPFileList dipFileList = new DIPFileList("BrowseDIP_dipFiles", filter,
-        messages.allOfAObject(DIPFile.class.getName()), false);
-      dipFileSearch.setList(dipFileList);
-      ListSelectionUtils.bindBrowseOpener(dipFileList);
+      ListBuilder<DIPFile> dipFileListBuilder = new ListBuilder<>(DIPFileList::new,
+        new AsyncTableCellOptions<>(DIPFile.class, "BrowseDIP_dipFiles").withFilter(filter)
+          .withSummary(messages.allOfAObject(DIPFile.class.getName())).bindOpener());
 
-      FlowPanel layout = new FlowPanel();
-      layout.add(dipFileSearch);
-      layout.add(dipFileList);
+      SearchWrapper search = new SearchWrapper(false).createListAndSearchPanel(dipFileListBuilder);
 
+      SimplePanel layout = new SimplePanel();
+      layout.add(search);
       center.add(layout);
-
       layout.addStyleName("browseDip-topList");
     }
 
@@ -390,7 +375,6 @@ public class BrowseDIP extends Composite {
           }
         }
       });
-
   }
 
   private List<BreadcrumbItem> getBreadcrumbs() {

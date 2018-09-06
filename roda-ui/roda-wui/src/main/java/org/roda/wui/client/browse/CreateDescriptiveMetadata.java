@@ -94,7 +94,7 @@ public class CreateDescriptiveMetadata extends Composite {
 
         callback.onSuccess(create);
       } else {
-        HistoryUtils.newHistory(BrowseAIP.RESOLVER);
+        HistoryUtils.newHistory(BrowseTop.RESOLVER);
         callback.onSuccess(null);
       }
     }
@@ -102,12 +102,12 @@ public class CreateDescriptiveMetadata extends Composite {
     @Override
     public void isCurrentUserPermitted(AsyncCallback<Boolean> callback) {
       // TODO check for edit metadata permission
-      UserLogin.getInstance().checkRoles(new HistoryResolver[] {BrowseAIP.RESOLVER}, false, callback);
+      UserLogin.getInstance().checkRoles(new HistoryResolver[] {BrowseTop.RESOLVER}, false, callback);
     }
 
     @Override
     public List<String> getHistoryPath() {
-      return ListUtils.concat(BrowseAIP.RESOLVER.getHistoryPath(), getHistoryToken());
+      return ListUtils.concat(BrowseTop.RESOLVER.getHistoryPath(), getHistoryToken());
     }
 
     @Override
@@ -344,7 +344,7 @@ public class CreateDescriptiveMetadata extends Composite {
         values = selectedBundle.getValues();
       }
       DescriptiveMetadataEditBundle newBundle = new DescriptiveMetadataEditBundle(idText, typeText, typeVersion,
-        xmlText, template, values, true);
+        xmlText, template, values, true, null);
 
       BrowserService.Util.getInstance().createDescriptiveMetadataFile(aipId, representationId, newBundle,
         new AsyncCallback<Void>() {
@@ -373,7 +373,7 @@ public class CreateDescriptiveMetadata extends Composite {
             errors.setVisible(false);
             Toast.showInfo(messages.dialogSuccess(), messages.metadataFileCreated());
             if (representationId == null) {
-              HistoryUtils.newHistory(BrowseAIP.RESOLVER, aipId);
+              HistoryUtils.newHistory(BrowseTop.RESOLVER, aipId);
             } else {
               HistoryUtils.newHistory(BrowseRepresentation.RESOLVER, aipId, representationId);
             }
@@ -437,7 +437,7 @@ public class CreateDescriptiveMetadata extends Composite {
       }
     } else {
       if (representationId == null) {
-        HistoryUtils.newHistory(BrowseAIP.RESOLVER, aipId);
+        HistoryUtils.newHistory(BrowseTop.RESOLVER, aipId);
       } else {
         HistoryUtils.newHistory(BrowseRepresentation.RESOLVER, aipId, representationId);
       }

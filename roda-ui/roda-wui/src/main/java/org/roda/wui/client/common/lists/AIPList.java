@@ -13,10 +13,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.roda.core.data.common.RodaConstants;
-import org.roda.core.data.v2.index.filter.Filter;
 import org.roda.core.data.v2.index.sort.Sorter;
 import org.roda.core.data.v2.ip.IndexedAIP;
-import org.roda.wui.client.common.lists.utils.BasicAsyncTableCell;
+import org.roda.wui.client.common.lists.utils.AsyncTableCell;
+import org.roda.wui.client.common.lists.utils.AsyncTableCellOptions;
 import org.roda.wui.common.client.ClientLogger;
 import org.roda.wui.common.client.tools.DescriptionLevelUtils;
 import org.roda.wui.common.client.tools.Humanize;
@@ -35,7 +35,7 @@ import com.google.gwt.user.client.ui.Label;
 
 import config.i18n.client.ClientMessages;
 
-public class AIPList extends BasicAsyncTableCell<IndexedAIP> {
+public class AIPList extends AsyncTableCell<IndexedAIP> {
 
   private final ClientLogger logger = new ClientLogger(getClass().getName());
   private static final ClientMessages messages = GWT.create(ClientMessages.class);
@@ -50,21 +50,13 @@ public class AIPList extends BasicAsyncTableCell<IndexedAIP> {
 
   private static final List<String> fieldsToReturn = Arrays.asList(RodaConstants.INDEX_UUID, RodaConstants.AIP_LEVEL,
     RodaConstants.AIP_TITLE, RodaConstants.AIP_DATE_INITIAL, RodaConstants.AIP_DATE_FINAL,
-    RodaConstants.AIP_HAS_REPRESENTATIONS);
+    RodaConstants.AIP_HAS_REPRESENTATIONS, RodaConstants.AIP_STATE);
 
-  public AIPList(String listId) {
-    this(listId, null, false, null, false);
+  @Override
+  protected void adjustOptions(AsyncTableCellOptions<IndexedAIP> options) {
+    options.withFieldsToReturn(fieldsToReturn);
   }
 
-  public AIPList(String listId, Filter filter, boolean justActive, String summary, boolean selectable) {
-    super(IndexedAIP.class, listId, filter, justActive, summary, selectable, fieldsToReturn);
-  }
-
-  public AIPList(String listId, Filter filter, boolean justActive, String summary, boolean selectable,
-    int initialPageSize, int pageSizeIncrement) {
-    super(IndexedAIP.class, listId, filter, justActive, summary, selectable, initialPageSize, pageSizeIncrement,
-      fieldsToReturn);
-  }
 
   @Override
   protected void configureDisplay(CellTable<IndexedAIP> display) {

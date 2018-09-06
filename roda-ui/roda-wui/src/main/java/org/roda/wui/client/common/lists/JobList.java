@@ -7,7 +7,6 @@
  */
 package org.roda.wui.client.common.lists;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -15,10 +14,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.roda.core.data.common.RodaConstants;
-import org.roda.core.data.v2.index.filter.Filter;
 import org.roda.core.data.v2.index.sort.Sorter;
 import org.roda.core.data.v2.jobs.Job;
-import org.roda.wui.client.common.lists.utils.BasicAsyncTableCell;
+import org.roda.wui.client.common.lists.utils.AsyncTableCell;
+import org.roda.wui.client.common.lists.utils.AsyncTableCellOptions;
 import org.roda.wui.client.common.lists.utils.TooltipTextColumn;
 import org.roda.wui.client.common.utils.HtmlSnippetUtils;
 import org.roda.wui.common.client.tools.Humanize;
@@ -44,7 +43,7 @@ import config.i18n.client.ClientMessages;
  * @author Luis Faria <lfaria@keep.pt>
  *
  */
-public class JobList extends BasicAsyncTableCell<Job> {
+public class JobList extends AsyncTableCell<Job> {
 
   private static final ClientMessages messages = GWT.create(ClientMessages.class);
 
@@ -58,24 +57,19 @@ public class JobList extends BasicAsyncTableCell<Job> {
   private Column<Job, SafeHtml> objectsSuccessCountColumn;
   private Column<Job, SafeHtml> objectsFailureCountColumn;
 
-  private static final List<String> fieldsToReturn = new ArrayList<>();
 
-  public JobList(String listId) {
-    this(listId, null, null, false);
-  }
+  private static final List<String> fieldsToReturn = Arrays.asList(RodaConstants.INDEX_UUID, RodaConstants.JOB_NAME,
+    RodaConstants.JOB_USERNAME, RodaConstants.JOB_START_DATE, RodaConstants.JOB_END_DATE, RodaConstants.JOB_STATE,
+    RodaConstants.JOB_SOURCE_OBJECTS_COUNT, RodaConstants.JOB_SOURCE_OBJECTS_PROCESSED_WITH_SUCCESS,
+    RodaConstants.JOB_SOURCE_OBJECTS_PROCESSED_WITH_FAILURE, RodaConstants.JOB_COMPLETION_PERCENTAGE);
 
-  public JobList(String listId, Filter filter, String summary, boolean selectable) {
-    super(Job.class, listId, filter, true, summary, selectable, fieldsToReturn);
-  }
-
-  public JobList(String listId, Filter filter, String summary, boolean selectable, int pageSize,
-    int incrementPage) {
-    super(Job.class, listId, filter, true, summary, selectable, pageSize, incrementPage, fieldsToReturn);
+  @Override
+  protected void adjustOptions(AsyncTableCellOptions<Job> options) {
+    options.withFieldsToReturn(fieldsToReturn);
   }
 
   @Override
   protected void configureDisplay(CellTable<Job> display) {
-
     nameColumn = new TooltipTextColumn<Job>() {
 
       @Override
@@ -83,7 +77,6 @@ public class JobList extends BasicAsyncTableCell<Job> {
         return job != null ? job.getName() : null;
       }
     };
-
     usernameColumn = new TextColumn<Job>() {
 
       @Override

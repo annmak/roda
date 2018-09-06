@@ -2,13 +2,14 @@ package org.roda.wui.client.common.actions;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.roda.core.data.v2.index.select.SelectedItems;
 import org.roda.core.data.v2.user.RODAMember;
 import org.roda.wui.client.common.actions.callbacks.ActionAsyncCallback;
-import org.roda.wui.client.common.actions.model.ActionsBundle;
-import org.roda.wui.client.common.actions.model.ActionsGroup;
+import org.roda.wui.client.common.actions.model.ActionableBundle;
+import org.roda.wui.client.common.actions.model.ActionableGroup;
 import org.roda.wui.client.management.CreateGroup;
 import org.roda.wui.client.management.CreateUser;
 import org.roda.wui.client.management.UserManagementService;
@@ -39,10 +40,31 @@ public class RODAMemberActions extends AbstractActionable<RODAMember> {
     Arrays.asList(RODAMemberAction.ACTIVATE, RODAMemberAction.DEACTIVATE, RODAMemberAction.REMOVE));
 
   private RODAMemberActions() {
+    // do nothing
   }
 
-  public enum RODAMemberAction implements Actionable.Action<RODAMember> {
-    NEW_USER, NEW_GROUP, ACTIVATE, DEACTIVATE, REMOVE
+  public enum RODAMemberAction implements Action<RODAMember> {
+    NEW_USER("org.roda.wui.api.controllers.UserManagement.createUser"),
+    NEW_GROUP("org.roda.wui.api.controllers.UserManagement.createGroup"),
+    ACTIVATE("org.roda.wui.api.controllers.UserManagement.updateUser"),
+    DEACTIVATE("org.roda.wui.api.controllers.UserManagement.updateUser"),
+    REMOVE("org.roda.wui.api.controllers.UserManagement.deleteUser");
+
+    private List<String> methods;
+
+    RODAMemberAction(String... methods) {
+      this.methods = Arrays.asList(methods);
+    }
+
+    @Override
+    public List<String> getMethods() {
+      return this.methods;
+    }
+  }
+
+  @Override
+  public RODAMemberAction actionForName(String name) {
+    return RODAMemberAction.valueOf(name);
   }
 
   public static RODAMemberActions get() {
@@ -51,22 +73,27 @@ public class RODAMemberActions extends AbstractActionable<RODAMember> {
 
   @Override
   public boolean canAct(Action<RODAMember> action) {
-    return POSSIBLE_ACTIONS_WITHOUT_MEMBER.contains(action);
+    return hasPermissions(action) && POSSIBLE_ACTIONS_WITHOUT_MEMBER.contains(action);
   }
 
   @Override
   public boolean canAct(Action<RODAMember> action, RODAMember object) {
-    if (object.isUser()) {
-      return (action.equals(RODAMemberAction.DEACTIVATE) && object.isActive())
-        || (action.equals(RODAMemberAction.ACTIVATE) && !object.isActive()) || (action.equals(RODAMemberAction.REMOVE));
+    if (hasPermissions(action)) {
+      if (object.isUser()) {
+        return (action.equals(RODAMemberAction.DEACTIVATE) && object.isActive())
+          || (action.equals(RODAMemberAction.ACTIVATE) && !object.isActive())
+          || (action.equals(RODAMemberAction.REMOVE));
+      } else {
+        return POSSIBLE_ACTIONS_ON_GROUP.contains(action);
+      }
     } else {
-      return POSSIBLE_ACTIONS_ON_GROUP.contains(action);
+      return false;
     }
   }
 
   @Override
   public boolean canAct(Action<RODAMember> action, SelectedItems<RODAMember> objects) {
-    return POSSIBLE_ACTIONS_ON_MEMBERS.contains(action);
+    return hasPermissions(action) && POSSIBLE_ACTIONS_ON_MEMBERS.contains(action);
   }
 
   @Override
@@ -146,21 +173,21 @@ public class RODAMemberActions extends AbstractActionable<RODAMember> {
   }
 
   @Override
-  public ActionsBundle<RODAMember> createActionsBundle() {
-    ActionsBundle<RODAMember> transferredResourcesActionsBundle = new ActionsBundle<>();
+  public ActionableBundle<RODAMember> createActionsBundle() {
+    ActionableBundle<RODAMember> transferredResourcesActionableBundle = new ActionableBundle<>();
 
     // ACTIONS
-    ActionsGroup<RODAMember> actionsGroup = new ActionsGroup<>(messages.sidebarActionsTitle());
-    actionsGroup.addButton(messages.addUserButton(), RODAMemberAction.NEW_USER, ActionImpact.UPDATED, "btn-plus");
-    actionsGroup.addButton(messages.addGroupButton(), RODAMemberAction.NEW_GROUP, ActionImpact.UPDATED, "btn-plus");
+    ActionableGroup<RODAMember> actionableGroup = new ActionableGroup<>(messages.sidebarActionsTitle());
+    actionableGroup.addButton(messages.addUserButton(), RODAMemberAction.NEW_USER, ActionImpact.UPDATED, "btn-plus");
+    actionableGroup.addButton(messages.addGroupButton(), RODAMemberAction.NEW_GROUP, ActionImpact.UPDATED, "btn-plus");
 
-    actionsGroup.addButton(messages.editUserActivate(), RODAMemberAction.ACTIVATE, ActionImpact.UPDATED, "btn-check");
-    actionsGroup.addButton(messages.editUserDeactivate(), RODAMemberAction.DEACTIVATE, ActionImpact.UPDATED,
-      "btn-check");
-    actionsGroup.addButton(messages.editUserRemove(), RODAMemberAction.REMOVE, ActionImpact.DESTROYED, "btn-ban");
+    actionableGroup.addButton(messages.editUserActivate(), RODAMemberAction.ACTIVATE, ActionImpact.UPDATED,
+      "fas fa-user-check");
+    actionableGroup.addButton(messages.editUserDeactivate(), RODAMemberAction.DEACTIVATE, ActionImpact.UPDATED,
+      "fas fa-user-times");
+    actionableGroup.addButton(messages.editUserRemove(), RODAMemberAction.REMOVE, ActionImpact.DESTROYED, "btn-ban");
 
-    transferredResourcesActionsBundle.addGroup(actionsGroup);
-
-    return transferredResourcesActionsBundle;
+    transferredResourcesActionableBundle.addGroup(actionableGroup);
+    return transferredResourcesActionableBundle;
   }
 }

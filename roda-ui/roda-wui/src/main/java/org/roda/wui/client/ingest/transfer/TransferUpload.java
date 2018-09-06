@@ -17,6 +17,7 @@ import java.util.List;
 import org.roda.core.data.common.RodaConstants;
 import org.roda.core.data.v2.ip.TransferredResource;
 import org.roda.wui.client.browse.BrowseFile;
+import org.roda.wui.client.browse.BrowseTop;
 import org.roda.wui.client.browse.BrowserService;
 import org.roda.wui.client.common.LastSelectedItemsSingleton;
 import org.roda.wui.client.common.UserLogin;
@@ -46,7 +47,6 @@ import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 
 import config.i18n.client.ClientMessages;
@@ -80,7 +80,7 @@ public class TransferUpload extends Composite {
     }
   };
 
-  public static final HistoryResolver BROWSE_RESOLVER = new HistoryResolver() {
+  public static final HistoryResolver BROWSE_FILE_RESOLVER = new HistoryResolver() {
 
     @Override
     public void resolve(List<String> historyTokens, AsyncCallback<Widget> callback) {
@@ -103,24 +103,38 @@ public class TransferUpload extends Composite {
     }
   };
 
+  public static final HistoryResolver BROWSE_RESOLVER = new HistoryResolver() {
+
+    @Override
+    public void resolve(List<String> historyTokens, AsyncCallback<Widget> callback) {
+      getInstance().browseResolve(historyTokens, callback);
+    }
+
+    @Override
+    public void isCurrentUserPermitted(AsyncCallback<Boolean> callback) {
+      UserLogin.getInstance().checkRole(this, callback);
+    }
+
+    @Override
+    public String getHistoryToken() {
+      return "upload";
+    }
+
+    @Override
+    public List<String> getHistoryPath() {
+      return ListUtils.concat(BrowseTop.RESOLVER.getHistoryPath(), getHistoryToken());
+    }
+  };
+
   interface MyUiBinder extends UiBinder<Widget, TransferUpload> {
   }
 
   private static MyUiBinder uiBinder = GWT.create(MyUiBinder.class);
-  private static ClientMessages messages = (ClientMessages) GWT.create(ClientMessages.class);
+  private static final ClientMessages messages = GWT.create(ClientMessages.class);
   private static final String DRAGOVER = "dragover";
 
   @UiField
   Label uploadTitle;
-
-  @UiField
-  SimplePanel itemIcon;
-
-  @UiField
-  Label itemTitle;
-
-  @UiField
-  Label itemDates;
 
   @UiField
   Button done;
