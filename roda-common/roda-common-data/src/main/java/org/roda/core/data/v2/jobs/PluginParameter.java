@@ -56,6 +56,11 @@ public class PluginParameter implements Serializable {
     AIP_ID,
 
     /**
+     * Interface to preview a list of AIPs to dispose
+     */
+    DISPOSAL,
+
+    /**
      * Interface to select an Risk Id
      */
     RISK_ID,
