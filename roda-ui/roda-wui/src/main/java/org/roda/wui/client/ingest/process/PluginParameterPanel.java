@@ -7,14 +7,16 @@
  */
 package org.roda.wui.client.ingest.process;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
+import com.google.gwt.i18n.client.DateTimeFormat;
 import org.roda.core.data.common.RodaConstants;
 import org.roda.core.data.utils.RepresentationInformationUtils;
 import org.roda.core.data.v2.common.Pair;
+import org.roda.core.data.v2.index.filter.DateIntervalFilterParameter;
+import org.roda.core.data.v2.index.filter.Filter;
+import org.roda.core.data.v2.index.filter.FilterParameter;
+import org.roda.core.data.v2.index.filter.SimpleFilterParameter;
 import org.roda.core.data.v2.ip.AIP;
 import org.roda.core.data.v2.ip.File;
 import org.roda.core.data.v2.ip.IndexedAIP;
@@ -91,6 +93,8 @@ public class PluginParameterPanel extends Composite {
       createPluginSipToAipLayout();
     } else if (PluginParameterType.AIP_ID.equals(parameter.getType())) {
       createSelectAipLayout();
+    }else if (PluginParameterType.DISPOSAL.equals(parameter.getType())) {
+      createDisposalLayout();
     } else if (PluginParameterType.RISK_ID.equals(parameter.getType())) {
       createSelectRiskLayout();
     } else if (PluginParameterType.SEVERITY.equals(parameter.getType())) {
@@ -311,6 +315,53 @@ public class PluginParameterPanel extends Composite {
     buttonsPanel.addStyleName("itemButtonsPanel");
     editButton.addStyleName("toolbarLink toolbarLinkSmall");
     removeButton.addStyleName("toolbarLink toolbarLinkSmall");
+  }
+
+  /**
+   * Method for creating filterParams for searching aips to dispose: disposaldate has to be prior today and
+   * disposalstatus has to be set in ClientMessages.properties to a relevant value.
+   * dateFinal and preservationstatus_txt are specified search fields in Swedish Customs gip.xml
+   * @return List of filterParams
+   */
+  private static List<FilterParameter> getFilterParameters(){
+    DateTimeFormat dtf = DateTimeFormat.getFormat("yyyy-MM-dd");
+    String dateFromStr="1970-01-01";
+
+    Date dateFrom=dtf.parse(dateFromStr);
+    Date dateTo = new Date();
+
+    DateIntervalFilterParameter dateParam=new DateIntervalFilterParameter("dateFinal","dateFinal",dateFrom,dateTo);
+    List<FilterParameter> parameterList=new ArrayList<>();
+    parameterList.add(new SimpleFilterParameter("preservationstatus_txt",messages.disposalStatus()));
+    parameterList.add(dateParam);
+    return parameterList;
+  }
+
+  /**
+   * Layout corresponding the PluginParameterType.DISPOSAL
+   * The layout displays a preview of which aips that will be disposed when plugin job is run.
+   */
+  private void createDisposalLayout() {
+
+    Label parameterName = new Label(parameter.getName());
+    //pluginParameter button
+    final Button button = new Button(messages.disposalPreviewButton());
+
+    ClickHandler editClickHandler = new ClickHandler() {
+      @Override
+      public void onClick(ClickEvent event) {
+        //use Roda's SelectAipDialog with our searchfilter
+        SelectAipDialog previewDisposalDialog = new SelectAipDialog(parameter.getName(),
+                new Filter(getFilterParameters()), true, false);
+        previewDisposalDialog.showAndCenter();
+      }
+    };
+    //adding clickhandler to plugin-button
+    button.addClickHandler(editClickHandler);
+
+    layout.add(parameterName);
+    layout.add(button);
+    button.addStyleName("form-button btn btn-play");
   }
 
   private void createSelectRodaObjectLayout() {
