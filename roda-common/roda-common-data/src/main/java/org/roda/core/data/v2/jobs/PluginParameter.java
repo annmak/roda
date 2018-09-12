@@ -11,6 +11,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.roda.core.data.v2.index.filter.Filter;
+
 /**
  * @author Rui Castro
  * @author Luis Faria <lfaria@keep.pt>
@@ -91,6 +93,7 @@ public class PluginParameter implements Serializable {
     PERMISSION_TYPES;
   }
 
+ 
   private String id = null;
   private String name = null;
   private PluginParameterType type = null;
@@ -99,6 +102,8 @@ public class PluginParameter implements Serializable {
   private boolean mandatory = true;
   private boolean readonly = false;
   private String description = null;
+
+  private RenderingHints renderingHings = null;
 
   /**
    * Constructs an empty {@link PluginParameter}.
@@ -366,6 +371,21 @@ public class PluginParameter implements Serializable {
    */
   public void setDescription(String description) {
     this.description = description;
+  }
+
+  /**
+   * @return the renderingHings
+   */
+  public RenderingHints getRenderingHings() {
+    return renderingHings;
+  }
+
+  /**
+   * @param renderingHings
+   *          the renderingHings to set
+   */
+  public void setRenderingHings(RenderingHints renderingHings) {
+    this.renderingHings = renderingHings;
   }
 
 }
