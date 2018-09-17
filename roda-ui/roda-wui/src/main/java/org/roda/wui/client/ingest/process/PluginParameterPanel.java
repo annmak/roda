@@ -256,7 +256,7 @@ public class PluginParameterPanel extends Composite {
     buttonsPanel.add(editButton);
     buttonsPanel.add(removeButton);
 
-    AipIdPluginParameterRenderingHints finalRenderingHints = renderingHints;
+    final AipIdPluginParameterRenderingHints finalRenderingHints = renderingHints;
     ClickHandler editClickHandler = new ClickHandler() {
 
       @Override
