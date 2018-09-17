@@ -14,7 +14,7 @@ public class AipIdPluginParameterRenderingHints implements RenderingHints {
   private Filter filter;
   /**
    * Determines if just active aips is to be shown in result list
-   * determines if export csv button is visible
+   * determines if export csv button is visible.
    */
   private boolean justActive, exportCsvVisible;
   /**
