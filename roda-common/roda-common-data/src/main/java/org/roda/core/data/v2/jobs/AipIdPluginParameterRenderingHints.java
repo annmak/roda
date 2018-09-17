@@ -2,12 +2,29 @@ package org.roda.core.data.v2.jobs;
 
 import org.roda.core.data.v2.index.filter.Filter;
 
+/**
+ * Renderinghints for plugin to customize gwt dialog
+ */
 public class AipIdPluginParameterRenderingHints implements RenderingHints {
   private static final long serialVersionUID = -8331898217589161894L;
 
+  /**
+   * returns the search filter
+   */
   private Filter filter;
+  /**
+   * determines if just active aips is to be shown in result list
+   * determines if export csv button is visible
+   */
   private boolean justActive, exportCsvVisible;
+  /**
+   * returns customized button label if plugin sets one, otherwise
+   * returns null and in that case the gwt dialog will show default label
+   */
   private String customizedButtonLabel = null;
+  /**
+   * if set to true gwt dialog will work as a preview and doestn't have the possibility to select items in result list
+   */
   private boolean disableSelection = false;
 
   /**

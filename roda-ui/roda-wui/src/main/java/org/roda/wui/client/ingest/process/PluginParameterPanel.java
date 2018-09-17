@@ -239,7 +239,7 @@ public class PluginParameterPanel extends Composite {
   }
 
   private void createSelectAipLayout() {
-    AipIdPluginParameterRenderingHints renderingHints=null;
+    AipIdPluginParameterRenderingHints renderingHints = null;
     if (parameter.getRenderingHings() != null &&
       parameter.getRenderingHings() instanceof AipIdPluginParameterRenderingHints) {
       renderingHints = (AipIdPluginParameterRenderingHints) parameter.getRenderingHings();
