@@ -7,6 +7,8 @@ public class AipIdPluginParameterRenderingHints implements RenderingHints {
 
   private Filter filter;
   private boolean justActive, exportCsvVisible;
+  private String customizedButtonLabel = null;
+  private boolean disableSelection = false;
 
   /**
    * Necessary for GWT serialization
@@ -60,4 +62,27 @@ public class AipIdPluginParameterRenderingHints implements RenderingHints {
     this.exportCsvVisible = exportCsvVisible;
   }
 
+  public String getCustomizedButtonLabel() {
+    return customizedButtonLabel;
+  }
+
+  /**
+   * @param customizedButtonLabel
+   *          add customized buttonLabel for plugin
+   */
+  public void setCustomizedButtonLabel(String customizedButtonLabel) {
+    this.customizedButtonLabel = customizedButtonLabel;
+  }
+
+  public boolean isDisableSelection() {
+    return disableSelection;
+  }
+
+  /**
+   * @param disableSelection
+   *          true if dialog is used only for preview
+   */
+  public void setDisableSelection(boolean disableSelection) {
+    this.disableSelection = disableSelection;
+  }
 }
