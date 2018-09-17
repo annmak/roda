@@ -244,16 +244,11 @@ public class PluginParameterPanel extends Composite {
       && parameter.getRenderingHings() instanceof AipIdPluginParameterRenderingHints) {
       renderingHints = (AipIdPluginParameterRenderingHints) parameter.getRenderingHings();
     }
-    String buttonLabel;
-    if (renderingHints != null && renderingHints.getCustomizedButtonLabel()!=null){
-      buttonLabel=renderingHints.getCustomizedButtonLabel();
-    }else{
-      buttonLabel=messages.pluginAipIdButton();
-    }
     Label parameterName = new Label(parameter.getName());
     final HorizontalPanel editPanel = new HorizontalPanel();
     final FlowPanel aipPanel = new FlowPanel();
-    final Button button = new Button(buttonLabel);
+    final Button button = new Button(renderingHints != null && renderingHints.getCustomizedButtonLabel() != null
+      ? renderingHints.getCustomizedButtonLabel() : messages.pluginAipIdButton());
     final FlowPanel buttonsPanel = new FlowPanel();
     final Anchor editButton = new Anchor(SafeHtmlUtils.fromSafeConstant("<i class=\"fa fa-edit\"></i>"));
     final Anchor removeButton = new Anchor(SafeHtmlUtils.fromSafeConstant("<i class=\"fa fa-remove\"></i>"));
