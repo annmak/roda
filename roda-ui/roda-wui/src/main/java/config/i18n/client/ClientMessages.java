@@ -545,10 +545,6 @@ public interface ClientMessages extends Messages {
 
   String showPluginCategories(@Select String category);
 
-  String disposalPreviewButton();
-
-  String disposalStatus();
-
   /************* Ingest process show ****************/
 
   String showJobStatusCreated();
