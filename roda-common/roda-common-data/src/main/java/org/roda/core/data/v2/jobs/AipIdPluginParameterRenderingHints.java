@@ -3,7 +3,7 @@ package org.roda.core.data.v2.jobs;
 import org.roda.core.data.v2.index.filter.Filter;
 
 /**
- * Renderinghints for plugin to customize gwt dialog
+ * Renderinghints for plugin to customize gwt dialog.
  */
 public class AipIdPluginParameterRenderingHints implements RenderingHints {
   private static final long serialVersionUID = -8331898217589161894L;
@@ -45,7 +45,7 @@ public class AipIdPluginParameterRenderingHints implements RenderingHints {
    * @param filter
    *          the filter to set
    */
-  public void setFilter(Filter filter) {
+  public void setFilter(final Filter filter) {
     this.filter = filter;
   }
 
@@ -60,7 +60,7 @@ public class AipIdPluginParameterRenderingHints implements RenderingHints {
    * @param justActive
    *          the justActive to set
    */
-  public void setJustActive(boolean justActive) {
+  public void setJustActive(final boolean justActive) {
     this.justActive = justActive;
   }
 
@@ -75,7 +75,7 @@ public class AipIdPluginParameterRenderingHints implements RenderingHints {
    * @param exportCsvVisible
    *          the exportCsvVisible to set
    */
-  public void setExportCsvVisible(boolean exportCsvVisible) {
+  public void setExportCsvVisible(final boolean exportCsvVisible) {
     this.exportCsvVisible = exportCsvVisible;
   }
 
@@ -87,7 +87,7 @@ public class AipIdPluginParameterRenderingHints implements RenderingHints {
    * @param customizedButtonLabel
    *          add customized buttonLabel for plugin
    */
-  public void setCustomizedButtonLabel(String customizedButtonLabel) {
+  public void setCustomizedButtonLabel(final String customizedButtonLabel) {
     this.customizedButtonLabel = customizedButtonLabel;
   }
 
@@ -99,7 +99,7 @@ public class AipIdPluginParameterRenderingHints implements RenderingHints {
    * @param disableSelection
    *          true if dialog is used only for preview
    */
-  public void setDisableSelection(boolean disableSelection) {
+  public void setDisableSelection(final boolean disableSelection) {
     this.disableSelection = disableSelection;
   }
 }
